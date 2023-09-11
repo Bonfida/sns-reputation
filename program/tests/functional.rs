@@ -1,4 +1,10 @@
-use sns_reputation::entrypoint::process_instruction;
+use sns_reputation::{
+    entrypoint::process_instruction,
+    instruction::vote,
+    state::{reputation_score::ReputationScore, Tag},
+};
+use solana_sdk::transaction::Transaction;
+use vote::Params;
 
 use {
     solana_program::pubkey::Pubkey,
@@ -13,43 +19,67 @@ pub mod common;
 
 #[tokio::test]
 async fn test_offer() {
-    // Create program and test environment
-    let alice = Keypair::new();
-    let bob = Keypair::new();
-
-    let mut program_test = ProgramTest::new(
+    let program_test = ProgramTest::new(
         "sns_reputation",
         sns_reputation::ID,
         processor!(process_instruction),
     );
-
-    // program_test.add_program("example_dependency", example_dependency::ID, None);
-
-    program_test.add_account(
-        alice.pubkey(),
-        Account {
-            lamports: 100_000_000_000,
-            ..Account::default()
-        },
-    );
-    program_test.add_account(
-        bob.pubkey(),
-        Account {
-            lamports: 100_000_000_000,
-            ..Account::default()
-        },
-    );
-
     ////
     // Create test context
     ////
     let mut prg_test_ctx = program_test.start_with_context().await;
 
-    let program_id = sns_reputation::ID;
+    let votee = Pubkey::new_unique();
+    let payer_pubkey = prg_test_ctx.payer.pubkey();
+    let (reputation_state, reputation_state_nonce) =
+        ReputationScore::find_key(&sns_reputation::ID, &votee);
 
-    let user_key = Pubkey::new_unique();
+    let instruction = vote(
+        vote::Accounts {
+            system_program: &Pubkey::default(),
+            voter: &payer_pubkey,
+            reputation_state_account: &reputation_state,
+        },
+        Params {
+            user_key: votee,
+            is_upvote: true,
+        },
+    );
 
-    let (pda, nonce) = Pubkey::find_program_address(&[user_key.as_ref()], &program_id);
+    let recent_blockhash = prg_test_ctx
+        .banks_client
+        .get_latest_blockhash()
+        .await
+        .unwrap();
 
-    let seeds = &[user_key.as_ref(), &[nonce]];
+    let transaction = Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&payer_pubkey),
+        &[&prg_test_ctx.payer],
+        recent_blockhash,
+    );
+
+    prg_test_ctx
+        .banks_client
+        .process_transaction(transaction)
+        .await
+        .unwrap();
+
+    let reputation_account = prg_test_ctx
+        .banks_client
+        .get_account(reputation_state)
+        .await
+        .unwrap()
+        .unwrap();
+    let parsed =
+        ReputationScore::from_buffer(&reputation_account.data, Tag::ReputationScore).unwrap();
+
+    assert_eq!(
+        parsed,
+        ReputationScore {
+            nonce: reputation_state_nonce,
+            upvote: 1,
+            downvote: 0
+        }
+    );
 }

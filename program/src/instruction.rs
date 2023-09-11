@@ -18,6 +18,6 @@ pub enum ProgramInstruction {
     Vote,
 }
 #[allow(missing_docs)]
-pub fn example(accounts: vote::Accounts<Pubkey>, params: vote::Params) -> Instruction {
+pub fn vote(accounts: vote::Accounts<Pubkey>, params: vote::Params) -> Instruction {
     accounts.get_instruction(crate::ID, ProgramInstruction::Vote as u8, params)
 }

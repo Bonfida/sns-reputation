@@ -3,7 +3,7 @@ use solana_program::{program_error::ProgramError, pubkey::Pubkey};
 
 use crate::error::SnsReputationError;
 
-#[derive(BorshSerialize, BorshDeserialize)]
+#[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug)]
 #[allow(missing_docs)]
 #[repr(C)]
 pub struct ReputationScore {

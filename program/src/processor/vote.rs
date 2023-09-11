@@ -23,6 +23,7 @@ use {
 pub struct Params {
     /// An example input parameter
     pub user_key: Pubkey,
+    pub is_upvote: bool,
 }
 
 #[derive(InstructionsAccount)]
