@@ -6,13 +6,11 @@ use {
     solana_program::{account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey},
 };
 
-pub mod example_state_borsh;
-pub mod example_state_cast;
+pub mod reputation_score;
 
 #[derive(BorshSerialize, BorshDeserialize, BorshSize, PartialEq)]
 #[allow(missing_docs)]
 pub enum Tag {
     Uninitialized,
-    ExampleStateCast,
-    ExampleStateBorsh,
+    ReputationScore,
 }

@@ -1,6 +1,7 @@
 use sns_reputation::entrypoint::process_instruction;
 
 use {
+    solana_program::pubkey::Pubkey,
     solana_program_test::{processor, ProgramTest},
     solana_sdk::{
         account::Account,
@@ -43,4 +44,12 @@ async fn test_offer() {
     // Create test context
     ////
     let mut prg_test_ctx = program_test.start_with_context().await;
+
+    let program_id = sns_reputation::ID;
+
+    let user_key = Pubkey::new_unique();
+
+    let (pda, nonce) = Pubkey::find_program_address(&[user_key.as_ref()], &program_id);
+
+    let seeds = &[user_key.as_ref(), &[nonce]];
 }

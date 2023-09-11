@@ -9,7 +9,7 @@ use {
 
 use crate::instruction::ProgramInstruction;
 
-pub mod example_instr;
+pub mod vote;
 
 pub struct Processor {}
 
@@ -26,11 +26,11 @@ impl Processor {
         msg!("Instruction unpacked");
 
         match instruction {
-            ProgramInstruction::ExampleInstr => {
+            ProgramInstruction::Vote => {
                 msg!("Instruction: Example Instruction"); //TODO
-                let params = example_instr::Params::try_from_slice(instruction_data)
+                let params = vote::Params::try_from_slice(instruction_data)
                     .map_err(|_| ProgramError::InvalidInstructionData)?;
-                example_instr::process(program_id, accounts, params)?;
+                vote::process(program_id, accounts, params)?;
             }
         }
 

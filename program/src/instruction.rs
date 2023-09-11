@@ -1,4 +1,4 @@
-pub use crate::processor::example_instr;
+pub use crate::processor::vote;
 use {
     bonfida_utils::InstructionsAccount,
     borsh::{BorshDeserialize, BorshSerialize},
@@ -15,12 +15,9 @@ pub enum ProgramInstruction {
     /// | 0     | ❌        | ❌      | The system program account    |
     /// | 1     | ❌        | ❌      | The SPL token program account |
     /// | 2     | ✅        | ✅      | Fee payer account             |
-    ExampleInstr,
+    Vote,
 }
 #[allow(missing_docs)]
-pub fn example(
-    accounts: example_instr::Accounts<Pubkey>,
-    params: example_instr::Params,
-) -> Instruction {
-    accounts.get_instruction(crate::ID, ProgramInstruction::ExampleInstr as u8, params)
+pub fn example(accounts: vote::Accounts<Pubkey>, params: vote::Params) -> Instruction {
+    accounts.get_instruction(crate::ID, ProgramInstruction::Vote as u8, params)
 }
