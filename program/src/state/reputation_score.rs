@@ -1,9 +1,10 @@
+use bonfida_utils::BorshSize;
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{program_error::ProgramError, pubkey::Pubkey};
 
 use crate::error::SnsReputationError;
 
-#[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug)]
+#[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, BorshSize, Default)]
 #[allow(missing_docs)]
 #[repr(C)]
 pub struct ReputationScore {
@@ -11,10 +12,6 @@ pub struct ReputationScore {
     pub nonce: u8,
     pub upvote: u64,
     pub downvote: u64,
-}
-
-impl ReputationScore {
-    pub const LEN: usize = std::mem::size_of::<Self>();
 }
 
 /// An example PDA state, serialized using Borsh //TODO

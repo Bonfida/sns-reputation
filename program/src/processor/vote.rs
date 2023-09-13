@@ -1,8 +1,12 @@
 //! Example instruction //TODO
 
 use bonfida_utils::checks::check_account_owner;
+use solana_program::{lamports, program::invoke_signed, rent::Rent, sysvar::Sysvar};
 
-use crate::state::{reputation_score::ReputationScore, Tag};
+use crate::state::{
+    reputation_score::{self, ReputationScore},
+    Tag,
+};
 
 use {
     bonfida_utils::{
@@ -70,16 +74,45 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
 
     check_account_key(accounts.reputation_state_account, &reputation_score_key)?;
 
-    // TODO: save
-
     if accounts.reputation_state_account.data_is_empty() {
+        let space = ReputationScore::default().borsh_len();
+        let rent = Rent::get()?;
+        let lamports = rent.minimum_balance(space);
+
         // Allocate account + set nonce
+        invoke_signed(
+            &solana_program::system_instruction::create_account(
+                accounts.voter.key,
+                accounts.reputation_state_account.key,
+                lamports,
+                space as u64,
+                program_id,
+            ),
+            &[
+                accounts.system_program.clone(),
+                accounts.voter.clone(),
+                accounts.reputation_state_account.clone(),
+            ],
+            &[&[params.user_key.as_ref(), &[reputation_score_nonce]]],
+        )?;
+    }
     }
 
     let data = ReputationScore::from_buffer(
+    let mut reputation_score = ReputationScore::from_buffer(
         &accounts.reputation_state_account.data.borrow(),
         Tag::ReputationScore,
     )?;
+
+    if params.is_upvote {
+        reputation_score.upvote += 1;
+    } else {
+        reputation_score.downvote += 1;
+    }
+
+    reputation_score
+        .save(&mut accounts.reputation_state_account.data.borrow_mut())
+        .map_err(|_| ProgramError::InvalidAccountData)?;
 
     Ok(())
 }
