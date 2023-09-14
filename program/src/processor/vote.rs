@@ -74,8 +74,8 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
 
     check_account_key(accounts.reputation_state_account, &reputation_score_key)?;
 
-    if accounts.reputation_state_account.data_is_empty() {
-        let space = ReputationScore::default().borsh_len();
+    let mut reputation_score = if accounts.reputation_state_account.data_is_empty() {
+        let space = ReputationScore::default().borsh_len() + std::mem::size_of::<Tag>();
         let rent = Rent::get()?;
         let lamports = rent.minimum_balance(space);
 
@@ -95,41 +95,18 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
             ],
             &[&[params.user_key.as_ref(), &[reputation_score_nonce]]],
         )?;
-    }
 
-    // TODO
-    // 1. Increment or decrement the vote count based on whether it's an upvote or downvote.
-    // 2. Store the vote action (upvote or downvote) associated with the voter's public key to prevent double voting.
-    // 3. Update the reputation_score of the target account based on the vote.
-    // 4. Update the reputation_state_account with the new vote count and reputation score.
-    // 5. Store the action associated with the voter's public key.
-
-    /*
-    1. I think I still need to have a step-by-step logic of what we want.
-    Because I understand what I need to have in the result, but still I have
-    no clue how to achieve that, like what steps I need to make
-
-    1. Firstly we need to check that user's account is exists inside the voting
-    account?
-    2. If no, we need to allocate it (create it?). How to do that? What
-    methods to call to do that?
-    3. If account exists, read current voting value. How to read it?
-    Do we have data stored like that Map? If no, then how?
-    {
-        'pubkey': {
-            upvote: 1,
-            downwote: 0,
+        ReputationScore {
+            nonce: reputation_score_nonce,
+            upvote: 0,
+            downvote: 0,
         }
-    }
-
-    4. Update the value just by mutating reputation_score.upvote?
-    5. And the just call `save` over `reputation_score`?
-     */
-
-    let mut reputation_score = ReputationScore::from_buffer(
-        &accounts.reputation_state_account.data.borrow(),
-        Tag::ReputationScore,
-    )?;
+    } else {
+        ReputationScore::from_buffer(
+            &accounts.reputation_state_account.data.borrow(),
+            Tag::ReputationScore,
+        )?
+    };
 
     if params.is_upvote {
         reputation_score.upvote += 1;

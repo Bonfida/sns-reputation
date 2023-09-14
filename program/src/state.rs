@@ -9,6 +9,7 @@ use {
 pub mod reputation_score;
 
 #[derive(BorshSerialize, BorshDeserialize, BorshSize, PartialEq)]
+#[repr(u64)]
 #[allow(missing_docs)]
 pub enum Tag {
     Uninitialized,

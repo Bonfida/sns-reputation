@@ -4,6 +4,8 @@ use solana_program::{program_error::ProgramError, pubkey::Pubkey};
 
 use crate::error::SnsReputationError;
 
+use super::Tag;
+
 #[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, BorshSize, Default)]
 #[allow(missing_docs)]
 #[repr(C)]
@@ -32,6 +34,7 @@ impl ReputationScore {
 
     pub fn save(&self, dst: &mut [u8]) -> Result<(), ProgramError> {
         self.serialize(&mut (&mut dst[8..]))?;
+        (Tag::ReputationScore as u64).serialize(&mut (&mut dst[..]))?;
         Ok(())
     }
 }

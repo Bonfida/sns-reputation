@@ -15,4 +15,4 @@ pub mod processor;
 #[allow(missing_docs)]
 pub mod cpi;
 
-declare_id_with_central_state!("11111111111111111111111111111111"); //TODO
+declare_id_with_central_state!("HVFVK2UComnzuLfDbPukyt86LGi51iLQUL3aGBEVqLni"); //TODO
