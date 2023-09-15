@@ -32,8 +32,11 @@ impl ReputationScore {
         Pubkey::find_program_address(seeds, program_id)
     }
 
+    // Stores data
     pub fn save(&self, dst: &mut [u8]) -> Result<(), ProgramError> {
+        // Skip first 8 bytes and store other data after them
         self.serialize(&mut (&mut dst[8..]))?;
+        // First Tag data in the first 8 bytes (u64 size) to represent what kind of data stored in next bytes
         (Tag::ReputationScore as u64).serialize(&mut (&mut dst[..]))?;
         Ok(())
     }

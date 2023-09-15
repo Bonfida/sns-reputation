@@ -1,17 +1,17 @@
 use sns_reputation::{
     entrypoint::process_instruction,
+    error::SnsReputationError,
     instruction::vote,
     state::{reputation_score::ReputationScore, Tag},
 };
-use solana_sdk::transaction::Transaction;
 use vote::Params;
 
 use {
-    solana_program::pubkey::Pubkey,
-    solana_program_test::{processor, ProgramTest},
+    solana_program::{instruction::InstructionError, pubkey::Pubkey},
+    solana_program_test::{processor, BanksClientError, ProgramTest},
     solana_sdk::{
-        account::Account,
-        signer::{keypair::Keypair, Signer},
+        signer::Signer,
+        transaction::{Transaction, TransactionError},
     },
 };
 
@@ -59,11 +59,10 @@ async fn test_offer() {
         recent_blockhash,
     );
 
-    prg_test_ctx
+    let tx_result = prg_test_ctx
         .banks_client
         .process_transaction(transaction)
-        .await
-        .unwrap();
+        .await;
 
     let reputation_account = prg_test_ctx
         .banks_client
@@ -82,4 +81,19 @@ async fn test_offer() {
             downvote: 0
         }
     );
+
+    // create new instruction
+    // create new tx
+    // store tx result
+    assert!(matches!(
+        tx_result,
+        Err(BanksClientError::TransactionError(
+            TransactionError::InstructionError(
+                0,
+                InstructionError::Custom(SnsReputationError::AlreadyVoted as u32)
+            )
+        ))
+    ));
+
+    print!("Test");
 }
