@@ -7,6 +7,7 @@ use {
 };
 
 pub mod reputation_score;
+pub mod user_vote;
 
 #[derive(BorshSerialize, BorshDeserialize, BorshSize, PartialEq)]
 #[repr(u64)]
@@ -14,4 +15,5 @@ pub mod reputation_score;
 pub enum Tag {
     Uninitialized,
     ReputationScore,
+    UserVote,
 }

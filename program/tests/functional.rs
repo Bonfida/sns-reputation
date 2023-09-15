@@ -2,7 +2,7 @@ use sns_reputation::{
     entrypoint::process_instruction,
     error::SnsReputationError,
     instruction::vote,
-    state::{reputation_score::ReputationScore, Tag},
+    state::{reputation_score::ReputationScore, user_vote::UserVote, Tag},
 };
 use vote::Params;
 
@@ -33,12 +33,65 @@ async fn test_offer() {
     let payer_pubkey = prg_test_ctx.payer.pubkey();
     let (reputation_state, reputation_state_nonce) =
         ReputationScore::find_key(&sns_reputation::ID, &votee);
+    let (user_vote_key, user_vote_state_nonce) =
+        UserVote::find_key(&sns_reputation::ID, &(votee, payer_pubkey));
 
     let instruction = vote(
         vote::Accounts {
             system_program: &Pubkey::default(),
             voter: &payer_pubkey,
             reputation_state_account: &reputation_state,
+            user_vote_state_account: &user_vote_key,
+        },
+        Params {
+            user_key: votee,
+            is_upvote: true,
+        },
+    );
+
+    let recent_blockhash = prg_test_ctx
+        .banks_client
+        .get_latest_blockhash()
+        .await
+        .unwrap();
+
+    let transaction = Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&payer_pubkey),
+        &[&prg_test_ctx.payer],
+        recent_blockhash,
+    );
+
+    prg_test_ctx
+        .banks_client
+        .process_transaction(transaction)
+        .await
+        .unwrap();
+
+    let reputation_account = prg_test_ctx
+        .banks_client
+        .get_account(reputation_state)
+        .await
+        .unwrap()
+        .unwrap();
+    let parsed =
+        ReputationScore::from_buffer(&reputation_account.data, Tag::ReputationScore).unwrap();
+
+    assert_eq!(
+        parsed,
+        ReputationScore {
+            nonce: reputation_state_nonce,
+            upvote: 1,
+            downvote: 0
+        }
+    );
+
+    let instruction = vote(
+        vote::Accounts {
+            system_program: &Pubkey::default(),
+            voter: &payer_pubkey,
+            reputation_state_account: &reputation_state,
+            user_vote_state_account: &user_vote_key,
         },
         Params {
             user_key: votee,
@@ -64,36 +117,17 @@ async fn test_offer() {
         .process_transaction(transaction)
         .await;
 
-    let reputation_account = prg_test_ctx
-        .banks_client
-        .get_account(reputation_state)
-        .await
-        .unwrap()
-        .unwrap();
-    let parsed =
-        ReputationScore::from_buffer(&reputation_account.data, Tag::ReputationScore).unwrap();
-
-    assert_eq!(
-        parsed,
-        ReputationScore {
-            nonce: reputation_state_nonce,
-            upvote: 1,
-            downvote: 0
-        }
-    );
+    if let Err(BanksClientError::TransactionError(TransactionError::InstructionError(
+        0,
+        InstructionError::Custom(n),
+    ))) = tx_result
+    {
+        assert_eq!(n, SnsReputationError::AlreadyVoted as u32)
+    } else {
+        panic!();
+    };
 
     // create new instruction
     // create new tx
     // store tx result
-    assert!(matches!(
-        tx_result,
-        Err(BanksClientError::TransactionError(
-            TransactionError::InstructionError(
-                0,
-                InstructionError::Custom(SnsReputationError::AlreadyVoted as u32)
-            )
-        ))
-    ));
-
-    print!("Test");
 }
