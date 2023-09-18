@@ -18,7 +18,7 @@ use {
 pub mod common;
 
 #[tokio::test]
-async fn test_offer() {
+async fn test_voting() {
     let program_test = ProgramTest::new(
         "sns_reputation",
         sns_reputation::ID,
@@ -33,8 +33,7 @@ async fn test_offer() {
     let payer_pubkey = prg_test_ctx.payer.pubkey();
     let (reputation_state, reputation_state_nonce) =
         ReputationScore::find_key(&sns_reputation::ID, &votee);
-    let (user_vote_key, user_vote_state_nonce) =
-        UserVote::find_key(&sns_reputation::ID, &(votee, payer_pubkey));
+    let (user_vote_key, _) = UserVote::find_key(&sns_reputation::ID, &(votee, payer_pubkey));
 
     let instruction = vote(
         vote::Accounts {

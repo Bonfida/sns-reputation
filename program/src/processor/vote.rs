@@ -111,11 +111,15 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
         )?
     };
 
-    let user_vote_key = UserVote::find_key(program_id, &(params.user_key, *accounts.voter.key));
+    let (user_vote_key, use_key_nonce) =
+        UserVote::find_key(program_id, &(params.user_key, *accounts.voter.key));
 
-    check_account_key(accounts.user_vote_state_account, &user_vote_key.0)?;
+    check_account_key(accounts.user_vote_state_account, &user_vote_key)?;
 
-    let mut user_vote = if accounts.user_vote_state_account.data_is_empty() {
+    let user_vote = if accounts.user_vote_state_account.data_is_empty() {
+        // If UserVote PDA is empty, means we're dealing with the initial user's vote
+        // Create UserVote PDA and update initial ReputationScore value
+
         let space = UserVote::default().borsh_len() + std::mem::size_of::<Tag>();
         let rent = Rent::get()?;
         let lamports = rent.minimum_balance(space);
@@ -134,26 +138,40 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
                 accounts.voter.clone(),
                 accounts.user_vote_state_account.clone(),
             ],
-            &[&[params.user_key.as_ref()]],
+            // Seeds (votee + voter) to derive PDA
+            &[&[
+                params.user_key.as_ref(),
+                accounts.voter.key.as_ref(),
+                &[use_key_nonce],
+            ]],
         )?;
 
-        UserVote {
+        let vote = UserVote {
             value: params.is_upvote,
+        };
+
+        if params.is_upvote {
+            reputation_score.upvote += 1
+        } else {
+            reputation_score.downvote += 1
         }
+
+        vote
     } else {
-        // Deserialize the data into UserVote struct
-        UserVote::from_buffer(
+        // Otherwise, derive UserVote value and update the ReputationScore
+        // value correspondingly
+
+        let mut vote = UserVote::from_buffer(
             &accounts.user_vote_state_account.data.borrow(),
             Tag::UserVote,
-        )?
-    };
+        )?;
 
-    if user_vote.value == params.is_upvote {
-        // User votes same value, throw error
-        return Err(SnsReputationError::AlreadyVoted.into());
-    } else {
+        if vote.value == params.is_upvote {
+            return Err(SnsReputationError::AlreadyVoted.into());
+        }
+
+        vote.value = params.is_upvote;
         // The user has changed his vote
-        user_vote.value = params.is_upvote;
         if params.is_upvote {
             reputation_score.upvote += 1;
             reputation_score.downvote -= 1;
@@ -161,7 +179,9 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
             reputation_score.downvote += 1;
             reputation_score.upvote -= 1;
         }
-    }
+
+        vote
+    };
 
     user_vote
         .save(&mut accounts.user_vote_state_account.data.borrow_mut())
