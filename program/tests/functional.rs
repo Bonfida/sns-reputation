@@ -98,6 +98,8 @@ async fn test_voting() {
         },
     );
 
+    prg_test_ctx.warp_to_slot(2).unwrap();
+
     let recent_blockhash = prg_test_ctx
         .banks_client
         .get_latest_blockhash()
