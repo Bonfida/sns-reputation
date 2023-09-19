@@ -1,31 +1,18 @@
 import { Connection, PublicKey } from "@solana/web3.js";
-import { SNS_REPUTATION_ID } from "./bindings";
+import { SNS_REPUTATION_ID_DEVNET } from "./bindings";
+import { ReputationScoreState } from './state';
 
 /**
+ * TODO:
  * This function can be used to retrieve the EXAMPLE accounts of an owner
  * @param connection A solana RPC connection
  * @param owner The owner
  * @returns
  */
-export const getForOwner = async (connection: Connection, owner: PublicKey) => {
-  const filters = [
-    {
-      memcmp: {
-        offset: 0,
-        bytes: "3", // Account Tag EXAMPLE
-      },
-    },
-    {
-      memcmp: {
-        offset: 1,
-        bytes: owner.toBase58(),
-      },
-    },
-  ];
+export const getReputationScore = async (connection: Connection, user: PublicKey): Promise<number> => {
+  const [key] = await ReputationScoreState.findKey(SNS_REPUTATION_ID_DEVNET, user);
 
-  const result = await connection.getProgramAccounts(SNS_REPUTATION_ID, {
-    filters,
-  });
+  const { upvote, downvote } = await ReputationScoreState.retrieve(connection, key);
 
-  return result;
+  return upvote - downvote;
 };

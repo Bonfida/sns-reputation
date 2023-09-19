@@ -12,11 +12,12 @@ use super::Tag;
 pub struct ReputationScore {
     /// Nonce
     pub nonce: u8,
+    /// Upvotes amount
     pub upvote: u64,
+    /// Downvotes amount
     pub downvote: u64,
 }
 
-/// An example PDA state, serialized using Borsh //TODO
 #[allow(missing_docs)]
 impl ReputationScore {
     pub fn from_buffer(buffer: &[u8], expected_tag: super::Tag) -> Result<Self, ProgramError> {

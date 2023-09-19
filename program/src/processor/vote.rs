@@ -1,13 +1,12 @@
-//! Example instruction //TODO
-use crate::error::SnsReputationError;
-use bonfida_utils::checks::check_account_owner;
-use solana_program::{lamports, program::invoke_signed, rent::Rent, sysvar::Sysvar};
+//! Instruction for storing and processing all votes over the votee account by using
+//! two separate PDAs:
+//! 1. Reputation score PDA - accumulates all voters' votes over the votee account.
+//! 2. User vote PDA – stores voter's vote.
 
-use crate::state::{
-    reputation_score::{self, ReputationScore},
-    user_vote::UserVote,
-    Tag,
-};
+use crate::error::SnsReputationError;
+use solana_program::{program::invoke_signed, rent::Rent, sysvar::Sysvar};
+
+use crate::state::{reputation_score::ReputationScore, user_vote::UserVote, Tag};
 
 use {
     bonfida_utils::{
@@ -28,6 +27,7 @@ use {
 pub struct Params {
     /// votee account pubkey
     pub user_key: Pubkey,
+    /// voter's vote, up (true) or down (false)
     pub is_upvote: bool,
 }
 
@@ -39,9 +39,11 @@ pub struct Accounts<'a, T> {
     /// The fee payer account
     pub voter: &'a T,
 
+    /// PDA for storing ReputationScore data
     #[cons(writable)]
     pub reputation_state_account: &'a T,
 
+    /// PDA that stores voter's vote, that is derived from votee and vote's keys
     #[cons(writable)]
     pub user_vote_state_account: &'a T,
 }

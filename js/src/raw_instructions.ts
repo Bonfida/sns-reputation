@@ -1,52 +1,66 @@
 // This file is auto-generated. DO NOT EDIT
-import BN from "bn.js";
-import { Schema, serialize } from "borsh";
-import { PublicKey, TransactionInstruction } from "@solana/web3.js";
+import BN from 'bn.js';
+import { Schema, serialize } from 'borsh';
+import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 
 export interface AccountKey {
   pubkey: PublicKey;
   isSigner: boolean;
   isWritable: boolean;
 }
-export class exampleInstruction {
+export class voteInstruction {
   tag: number;
+  userKey: Uint8Array;
+  isUpvote: boolean;
   static schema: Schema = new Map([
     [
-      exampleInstruction,
+      voteInstruction,
       {
-        kind: "struct",
-        fields: [["tag", "u8"]],
+        kind: 'struct',
+        fields: [
+          ['tag', 'u8'],
+          ['userKey', [32]],
+          ['isUpvote', 'bool'],
+        ],
       },
     ],
   ]);
-  constructor() {
+  constructor(obj: { userKey: Uint8Array; isUpvote: boolean }) {
     this.tag = 0;
+    this.userKey = obj.userKey;
+    this.isUpvote = obj.isUpvote;
   }
   serialize(): Uint8Array {
-    return serialize(exampleInstruction.schema, this);
+    return serialize(voteInstruction.schema, this);
   }
   getInstruction(
     programId: PublicKey,
-    tokenSource: PublicKey,
-    splTokenProgram: PublicKey,
-    systemProgram: PublicKey
+    systemProgram: PublicKey,
+    voter: PublicKey,
+    reputationStateAccount: PublicKey,
+    userVoteStateAccount: PublicKey,
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
     keys.push({
-      pubkey: tokenSource,
+      pubkey: systemProgram,
+      isSigner: false,
+      isWritable: false,
+    });
+    keys.push({
+      pubkey: voter,
+      isSigner: true,
+      isWritable: true,
+    });
+    keys.push({
+      pubkey: reputationStateAccount,
       isSigner: false,
       isWritable: true,
     });
     keys.push({
-      pubkey: splTokenProgram,
+      pubkey: userVoteStateAccount,
       isSigner: false,
-      isWritable: false,
-    });
-    keys.push({
-      pubkey: systemProgram,
-      isSigner: false,
-      isWritable: false,
+      isWritable: true,
     });
     return new TransactionInstruction({
       keys,

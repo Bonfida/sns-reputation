@@ -10,10 +10,10 @@ use super::Tag;
 #[allow(missing_docs)]
 #[repr(C)]
 pub struct UserVote {
+    /// User's vote over votee
     pub value: bool,
 }
 
-/// An example PDA state, serialized using Borsh //TODO
 #[allow(missing_docs)]
 impl UserVote {
     pub fn from_buffer(buffer: &[u8], expected_tag: super::Tag) -> Result<Self, ProgramError> {
