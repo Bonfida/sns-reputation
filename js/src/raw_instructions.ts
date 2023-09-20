@@ -12,19 +12,9 @@ export class voteInstruction {
   tag: number;
   userKey: Uint8Array;
   isUpvote: boolean;
-  static schema: Schema = new Map([
-    [
-      voteInstruction,
-      {
-        kind: 'struct',
-        fields: [
-          ['tag', 'u8'],
-          ['userKey', [32]],
-          ['isUpvote', 'bool'],
-        ],
-      },
-    ],
-  ]);
+
+  static schema = { struct: { tag: 'u8', userKey: { array: { type: 'u8', len: 32 } }, isUpvote: 'bool' } };
+
   constructor(obj: { userKey: Uint8Array; isUpvote: boolean }) {
     this.tag = 0;
     this.userKey = obj.userKey;

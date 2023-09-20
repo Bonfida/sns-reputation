@@ -12,7 +12,27 @@ import { ReputationScoreState } from './state';
 export const getReputationScore = async (connection: Connection, user: PublicKey): Promise<number> => {
   const [key] = await ReputationScoreState.findKey(SNS_REPUTATION_ID_DEVNET, user);
 
-  const { upvote, downvote } = await ReputationScoreState.retrieve(connection, key);
+  let upvote = 0;
+  let downvote = 0;
+
+  try {
+    const result = await ReputationScoreState.retrieve(connection, key);
+
+    upvote = result.upvote;
+    downvote = result.downvote;
+  } catch (err: any) {
+    if (!(err instanceof Error)) {
+      throw err
+    }
+  }
 
   return upvote - downvote;
 };
+
+export const getReputationScoreKey = (user: PublicKey) => {
+  return ReputationScoreState.findKey(SNS_REPUTATION_ID_DEVNET, user);
+}
+
+export const getUserVoteAddress = (addresses: [votee: PublicKey, voter: PublicKey]) => {
+  return ReputationScoreState.findUserVoteKey(SNS_REPUTATION_ID_DEVNET, addresses);
+}

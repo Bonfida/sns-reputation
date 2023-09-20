@@ -27,7 +27,7 @@ impl Processor {
 
         match instruction {
             ProgramInstruction::Vote => {
-                msg!("Instruction: Example Instruction"); //TODO
+                msg!("Instruction: Vote Instruction");
                 let params = vote::Params::try_from_slice(instruction_data)
                     .map_err(|_| ProgramError::InvalidInstructionData)?;
                 vote::process(program_id, accounts, params)?;

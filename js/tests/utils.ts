@@ -10,7 +10,8 @@ import * as path from "path";
 import { readFileSync, writeSync, closeSync } from "fs";
 import { ChildProcess, spawn, execSync } from "child_process";
 import tmp from "tmp";
-import { Token, SNS_REPUTATION_ID } from "@solana/spl-token";
+import { Token } from "@solana/spl-token";
+import { SNS_REPUTATION_ID_DEVNET } from "../src/bindings";
 
 const programName = "sns_reputation";
 
@@ -135,7 +136,7 @@ export class TokenMint {
       mintAuthority || signer.publicKey,
       null,
       6,
-      SNS_REPUTATION_ID
+      SNS_REPUTATION_ID_DEVNET
     );
     return new TokenMint(token, signer);
   }
