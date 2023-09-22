@@ -1,6 +1,6 @@
 import { beforeAll, expect, jest, test } from '@jest/globals';
 import { Connection, Keypair, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { signAndSendTransactionInstructions } from './utils';
+import { signAndSendTransactionInstructions, sleep } from './utils';
 import {
   buildVotingInstruction,
   SNS_REPUTATION_ID_DEVNET,
@@ -10,6 +10,7 @@ import {
   getUserVoteAddress,
   getReputationScoreKey,
   getUserVote,
+  getAllVotersForUser,
 } from '../src/secondary_bindings';
 
 let connection: Connection;
@@ -74,6 +75,7 @@ const checkScore = (votee) => getReputationScore(connection, votee.publicKey);
  * 4. Downvote with ANOTHER user, check that score is -2
  * 5. Check that voter can vote over another VOTEE and score is correct
  * 6. Check that we can retrieve current user vote and the valus is correct
+ * 7. Check that "getAllVotersForUser" returns exactly 2 expected voters
  *
  */
 
@@ -93,7 +95,7 @@ test('Check voting flow', async () => {
   expect(await checkScore(votee)).toEqual(-1);
 
   // Make new downvote by NEW user
-  await makeVote({ votee, vote: false });
+  const { voter: anotherVoter } = await makeVote({ votee, vote: false });
   // Now score should be -2, because two users downvoted
   expect(await checkScore(votee)).toEqual(-2);
 
@@ -110,4 +112,15 @@ test('Check voting flow', async () => {
 
   // voter's latest vote is -1, means "false"
   expect(voterVote).toEqual(false);
+
+  const result = await getAllVotersForUser(connection, votee.publicKey);
+
+  // Check that "getAllVotersForUser" returns exactly two correct voters
+  expect(result.length).toEqual(2);
+  result.forEach(item => {
+    expect([
+      voter.publicKey.toBase58(),
+      anotherVoter.publicKey.toBase58()
+    ]).toContain(item.voter.toBase58());
+  })
 });

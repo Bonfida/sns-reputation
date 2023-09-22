@@ -1,6 +1,6 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { SNS_REPUTATION_ID_DEVNET } from "./bindings";
-import { ReputationScoreState, UserVoteState, type UserVote } from './state';
+import { ReputationScoreState, UserVoteState } from './state';
 
 export const getReputationScoreKey = (user: PublicKey) => {
   return ReputationScoreState.findKey(SNS_REPUTATION_ID_DEVNET, user);
@@ -8,8 +8,8 @@ export const getReputationScoreKey = (user: PublicKey) => {
 
 /**
  * Retrieve user reputation score, based on number of upvotes and downvotes.
- * @param connection – A solana RPC connection
- * @param votee – User voted over by other users
+ * @param connection - A solana RPC connection
+ * @param votee - User voted over by other users
  * @returns reputation score
  * @example
  *
@@ -41,12 +41,12 @@ export const getUserVoteAddress = (addresses: Parameters<typeof UserVoteState.fi
 /**
  * Retrieve user vote.
  *
- * @param connection – A solana RPC connection
- * @param users – Votee and voter addresses to derive correct vote
+ * @param connection - A solana RPC connection
+ * @param users - Votee and voter addresses to derive correct vote
  * @returns current user vote
  * @example
  *
- * const score = getUserVote(connection, { votee: votee.publicKey, voter: voter.publicKey });
+ * const userVote = getUserVote(connection, { votee: votee.publicKey, voter: voter.publicKey });
  */
 export const getUserVote = async (
   connection: Connection,
@@ -66,3 +66,44 @@ export const getUserVote = async (
 
   return null;
 };
+
+/**
+ * Returns all voters that voted over asked votee
+ *
+ * @param connection - A solana RPC connection
+ * @param votee - User for whom we are looking for all voters
+ * @returns voters that voter over votee
+ * @example
+ * const voters = getAllVotersForUser(connection, votee.publicKey);
+ */
+export const getAllVotersForUser = async (
+  connection: Connection,
+  votee: PublicKey,
+): Promise<UserVoteState[]> => {
+  try {
+    const filters = [
+      {
+        // tag + bool + votee pubkey + voter pubkey
+        dataSize: 8 + 1 + 32 + 32,
+      },
+      {
+        memcmp: {
+          offset: 8 + 1, // tag + bool
+          bytes: votee.toBase58(),
+        },
+      },
+    ];
+
+    const result = await connection.getProgramAccounts(SNS_REPUTATION_ID_DEVNET, {
+      filters,
+    });
+
+    return result.map(item => UserVoteState.deserialize(item.account.data));
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
+
+// TODO:
+// getAllVoteesForVoter
