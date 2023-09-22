@@ -8,7 +8,6 @@ export enum Tag {
 }
 
 export class ReputationScoreState {
-  static SEED = 'example_seed';
   tag: Tag;
   nonce: number;
   upvote: number;
@@ -18,7 +17,12 @@ export class ReputationScoreState {
     struct: { tag: 'u64', nonce: 'u8', upvote: 'u64', downvote: 'u64' },
   };
 
-  constructor(obj: { tag: Tag; nonce: number; upvote: bigint; downvote: bigint }) {
+  constructor(obj: {
+    tag: Tag;
+    nonce: number;
+    upvote: bigint;
+    downvote: bigint;
+  }) {
     this.tag = obj.tag;
     this.nonce = obj.nonce;
     this.upvote = Number(obj.upvote);
@@ -42,7 +46,47 @@ export class ReputationScoreState {
       programId,
     );
   }
-  static async findUserVoteKey(
+}
+
+export class UserVoteState {
+  tag: Tag;
+  value: boolean;
+  votee: PublicKey;
+  voter: PublicKey;
+
+  static schema = {
+    struct: {
+      tag: 'u64',
+      value: 'u8',
+      votee: { array: { type: 'u8', len: 32 } },
+      voter: { array: { type: 'u8', len: 32 } },
+    },
+  };
+
+  constructor(obj: {
+    tag: Tag;
+    value: boolean;
+    votee: Uint8Array;
+    voter: Uint8Array;
+  }) {
+    this.tag = obj.tag;
+    this.value = obj.value;
+    this.votee = new PublicKey(obj.votee);
+    this.voter = new PublicKey(obj.voter);
+  }
+
+  static deserialize(data: Buffer): UserVoteState {
+    return new UserVoteState(deserialize(this.schema, data) as any);
+  }
+
+  static async retrieve(connection: Connection, key: PublicKey) {
+    const accountInfo = await connection.getAccountInfo(key);
+    if (!accountInfo || !accountInfo.data) {
+      throw new Error('State account not found');
+    }
+    return this.deserialize(accountInfo.data);
+  }
+  static async findKey(
     programId: PublicKey,
     userAddresses: [votee: PublicKey, voter: PublicKey],
   ) {

@@ -2,7 +2,7 @@ import { beforeAll, expect, jest, test } from "@jest/globals";
 import { Connection, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { signAndSendTransactionInstructions } from "./utils";
 import { buildVotingInstruction, SNS_REPUTATION_ID_DEVNET } from "../src/bindings";
-import { getReputationScore, getUserVoteAddress, getReputationScoreKey } from "../src/secondary_bindings";
+import { getReputationScore, getUserVoteAddress, getReputationScoreKey, getUserVote } from "../src/secondary_bindings";
 
 let connection: Connection;
 
@@ -90,4 +90,7 @@ test("Check voting flow", async () => {
   // Check that same voter can vote over another votee
   await makeVote({ votee: anotherVotee, vote: false, voter });
   expect(await checkScore(anotherVotee)).toEqual(-1);
+
+  console.log({ voter: voter.publicKey.toBase58(), votee: votee.publicKey.toBase58() })
+  await getUserVote(connection, [voter.publicKey, votee.publicKey]);
 });
