@@ -150,6 +150,8 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
 
         let vote = UserVote {
             value: params.is_upvote,
+            votee: params.user_key,
+            voter: *accounts.voter.key,
         };
 
         if params.is_upvote {

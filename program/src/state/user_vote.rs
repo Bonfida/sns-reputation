@@ -12,6 +12,10 @@ use super::Tag;
 pub struct UserVote {
     /// User's vote over votee
     pub value: bool,
+    /// Votee address, stored as metadata
+    pub votee: Pubkey,
+    /// Voter address, stored as metadata
+    pub voter: Pubkey,
 }
 
 #[allow(missing_docs)]

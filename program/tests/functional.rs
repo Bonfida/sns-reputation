@@ -76,12 +76,31 @@ async fn test_voting() {
     let parsed =
         ReputationScore::from_buffer(&reputation_account.data, Tag::ReputationScore).unwrap();
 
+    let user_vote_account = prg_test_ctx
+        .banks_client
+        .get_account(user_vote_key)
+        .await
+        .unwrap()
+        .unwrap();
+
+    let parsed_user_vote = UserVote::from_buffer(&user_vote_account.data, Tag::UserVote).unwrap();
+
     assert_eq!(
         parsed,
         ReputationScore {
             nonce: reputation_state_nonce,
             upvote: 1,
             downvote: 0
+        }
+    );
+
+    // Check that UserVote contains all expected metadata
+    assert_eq!(
+        parsed_user_vote,
+        UserVote {
+            value: true,
+            voter: payer_pubkey,
+            votee
         }
     );
 
