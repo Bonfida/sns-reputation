@@ -1,37 +1,53 @@
-import { beforeAll, expect, jest, test } from "@jest/globals";
-import { Connection, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { signAndSendTransactionInstructions } from "./utils";
-import { buildVotingInstruction, SNS_REPUTATION_ID_DEVNET } from "../src/bindings";
-import { getReputationScore, getUserVoteAddress, getReputationScoreKey, getUserVote } from "../src/secondary_bindings";
+import { beforeAll, expect, jest, test } from '@jest/globals';
+import { Connection, Keypair, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { signAndSendTransactionInstructions } from './utils';
+import {
+  buildVotingInstruction,
+  SNS_REPUTATION_ID_DEVNET,
+} from '../src/bindings';
+import {
+  getReputationScore,
+  getUserVoteAddress,
+  getReputationScoreKey,
+  getUserVote,
+} from '../src/secondary_bindings';
 
 let connection: Connection;
 
 beforeAll(async () => {
   connection = new Connection(
-    "https://explorer-api.devnet.solana.com/ ",
-    "confirmed"
+    'https://explorer-api.devnet.solana.com/ ',
+    'confirmed',
   );
 });
 
 jest.setTimeout(1_500_000);
 
-const makeVote = async (
-  { voter = undefined, vote = true, votee }:
-  { voter?: Keypair, vote?: boolean, votee: Keypair },
-) => {
+const makeVote = async ({
+  voter = undefined,
+  vote = true,
+  votee,
+}: {
+  voter?: Keypair;
+  vote?: boolean;
+  votee: Keypair;
+}) => {
   if (!voter) {
     // Create new voter
     voter = Keypair.generate();
     // Airdrop some SOL
     const tx = await connection.requestAirdrop(
       voter.publicKey,
-      LAMPORTS_PER_SOL
+      LAMPORTS_PER_SOL,
     );
-    await connection.confirmTransaction(tx, "confirmed");
+    await connection.confirmTransaction(tx, 'confirmed');
   }
 
   const [reputationScoreAddress] = await getReputationScoreKey(votee.publicKey);
-  const [userVoteAddress] = await getUserVoteAddress([votee.publicKey, voter.publicKey]);
+  const [userVoteAddress] = await getUserVoteAddress({
+    votee: votee.publicKey,
+    voter: voter.publicKey,
+  });
 
   const ix = buildVotingInstruction({
     programId: SNS_REPUTATION_ID_DEVNET,
@@ -42,15 +58,10 @@ const makeVote = async (
     isUpvote: vote,
   });
 
-  await signAndSendTransactionInstructions(
-    connection,
-    [voter],
-    voter,
-    [ix],
-  );
+  await signAndSendTransactionInstructions(connection, [voter], voter, [ix]);
 
   return { voter };
-}
+};
 
 const checkScore = (votee) => getReputationScore(connection, votee.publicKey);
 
@@ -62,10 +73,11 @@ const checkScore = (votee) => getReputationScore(connection, votee.publicKey);
  * 3. Downvote with the same user, check that score is -1
  * 4. Downvote with ANOTHER user, check that score is -2
  * 5. Check that voter can vote over another VOTEE and score is correct
+ * 6. Check that we can retrieve current user vote and the valus is correct
  *
  */
 
-test("Check voting flow", async () => {
+test('Check voting flow', async () => {
   const votee = Keypair.generate();
 
   // Initial score should be 0
@@ -80,7 +92,7 @@ test("Check voting flow", async () => {
   // Now score should be -1, because same user changed his vote
   expect(await checkScore(votee)).toEqual(-1);
 
-  // Make new downvote by new user
+  // Make new downvote by NEW user
   await makeVote({ votee, vote: false });
   // Now score should be -2, because two users downvoted
   expect(await checkScore(votee)).toEqual(-2);
@@ -91,6 +103,11 @@ test("Check voting flow", async () => {
   await makeVote({ votee: anotherVotee, vote: false, voter });
   expect(await checkScore(anotherVotee)).toEqual(-1);
 
-  console.log({ voter: voter.publicKey.toBase58(), votee: votee.publicKey.toBase58() })
-  await getUserVote(connection, [voter.publicKey, votee.publicKey]);
+  const voterVote = await getUserVote(connection, {
+    votee: votee.publicKey,
+    voter: voter.publicKey,
+  });
+
+  // voter's latest vote is -1, means "false"
+  expect(voterVote).toEqual(false);
 });

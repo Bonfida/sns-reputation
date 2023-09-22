@@ -1,6 +1,6 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { SNS_REPUTATION_ID_DEVNET } from "./bindings";
-import { ReputationScoreState, UserVoteState } from './state';
+import { ReputationScoreState, UserVoteState, type UserVote } from './state';
 
 export const getReputationScoreKey = (user: PublicKey) => {
   return ReputationScoreState.findKey(SNS_REPUTATION_ID_DEVNET, user);
@@ -42,33 +42,27 @@ export const getUserVoteAddress = (addresses: Parameters<typeof UserVoteState.fi
  * Retrieve user vote.
  *
  * @param connection – A solana RPC connection
- * @param users – User voted over by other users
- * @returns reputation score
+ * @param users – Votee and voter addresses to derive correct vote
+ * @returns current user vote
  * @example
  *
- * const score = getReputationScore(connection, votee.publicKey);
+ * const score = getUserVote(connection, { votee: votee.publicKey, voter: voter.publicKey });
  */
 export const getUserVote = async (
   connection: Connection,
-  users: Parameters<typeof UserVoteState.findKey>[1],
-): Promise<number> => {
+  users: Parameters<typeof getUserVoteAddress>[0],
+): Promise<boolean | null> => {
   const [key] = await getUserVoteAddress(users);
-
-  console.log('key', key.toBase58())
-
-  let upvote = 0;
-  let downvote = 0;
 
   try {
     const result = await UserVoteState.retrieve(connection, key);
 
-    console.log('result', result);
+    return Boolean(result.value);
   } catch (err) {
-    console.log('err', err);
     if (!(err instanceof Error)) {
       throw err
     }
   }
 
-  return upvote - downvote;
+  return null;
 };

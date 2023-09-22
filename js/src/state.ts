@@ -48,7 +48,14 @@ export class ReputationScoreState {
   }
 }
 
-export class UserVoteState {
+export interface UserVote {
+  tag: Tag;
+  value: boolean;
+  votee: PublicKey;
+  voter: PublicKey;
+}
+
+export class UserVoteState implements UserVote {
   tag: Tag;
   value: boolean;
   votee: PublicKey;
@@ -88,10 +95,10 @@ export class UserVoteState {
   }
   static async findKey(
     programId: PublicKey,
-    userAddresses: [votee: PublicKey, voter: PublicKey],
+    { votee, voter }: { votee: PublicKey; voter: PublicKey },
   ) {
     return await PublicKey.findProgramAddress(
-      userAddresses.map((a) => a.toBytes()),
+      [votee.toBytes(), voter.toBytes()],
       programId,
     );
   }
