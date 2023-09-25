@@ -11,6 +11,7 @@ import {
   getReputationScoreKey,
   getUserVote,
   getAllVotersForUser,
+  getAllVoteesForVoter,
 } from '../src/secondary_bindings';
 
 let connection: Connection;
@@ -113,14 +114,25 @@ test('Check voting flow', async () => {
   // voter's latest vote is -1, means "false"
   expect(voterVote).toEqual(false);
 
-  const result = await getAllVotersForUser(connection, votee.publicKey);
+  const votersList = await getAllVotersForUser(connection, votee.publicKey);
 
-  // Check that "getAllVotersForUser" returns exactly two correct voters
-  expect(result.length).toEqual(2);
-  result.forEach(item => {
+  expect(votersList.length).toBe(2);
+  // We're doing forEach because Solana might return the list in incorrect order
+  // since we're making transactions one by one with no delay
+  votersList.forEach(item => {
     expect([
       voter.publicKey.toBase58(),
       anotherVoter.publicKey.toBase58()
     ]).toContain(item.voter.toBase58());
   })
+
+  const voteesList = await getAllVoteesForVoter(connection, voter.publicKey);
+
+  expect(voteesList.length).toBe(2);
+  voteesList.forEach(item => {
+    expect([
+      votee.publicKey.toBase58(),
+      anotherVotee.publicKey.toBase58()
+    ]).toContain(item.votee.toBase58());
+  });
 });

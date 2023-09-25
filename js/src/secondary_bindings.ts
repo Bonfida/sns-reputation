@@ -105,5 +105,32 @@ export const getAllVotersForUser = async (
   }
 }
 
-// TODO:
-// getAllVoteesForVoter
+export const getAllVoteesForVoter = async (
+  connection: Connection,
+  voter: PublicKey,
+): Promise<UserVoteState[]> => {
+  try {
+    const filters = [
+      {
+        // tag + bool + votee pubkey + voter pubkey
+        dataSize: 8 + 1 + 32 + 32,
+      },
+      {
+        memcmp: {
+          // tag + bool + votee pubkey
+          offset: 8 + 1 + 32,
+          bytes: voter.toBase58(),
+        },
+      },
+    ];
+
+    const result = await connection.getProgramAccounts(SNS_REPUTATION_ID_DEVNET, {
+      filters,
+    });
+
+    return result.map(item => UserVoteState.deserialize(item.account.data));
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
