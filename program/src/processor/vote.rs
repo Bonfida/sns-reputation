@@ -3,7 +3,6 @@
 //! 1. Reputation score PDA - accumulates all voters' votes over the votee account.
 //! 2. User vote PDA – stores voter's vote.
 
-use crate::error::SnsReputationError;
 use solana_program::{program::invoke_signed, rent::Rent, sysvar::Sysvar};
 
 use crate::state::{reputation_score::ReputationScore, user_vote::UserVote, Tag};
@@ -171,7 +170,21 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
         )?;
 
         if vote.value == params.is_upvote {
-            return Err(SnsReputationError::AlreadyVoted.into());
+            let lamports = **accounts.user_vote_state_account.lamports.borrow_mut();
+            **accounts.user_vote_state_account.lamports.borrow_mut() = 0;
+            **accounts.voter.lamports.borrow_mut() += lamports;
+
+            if params.is_upvote {
+                reputation_score.upvote -= 1;
+            } else {
+                reputation_score.downvote -= 1;
+            }
+
+            reputation_score
+                .save(&mut accounts.reputation_state_account.data.borrow_mut())
+                .map_err(|_| ProgramError::InvalidAccountData)?;
+
+            return Ok(());
         }
 
         vote.value = params.is_upvote;

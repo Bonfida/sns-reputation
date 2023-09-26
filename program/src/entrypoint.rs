@@ -40,7 +40,6 @@ impl PrintProgramError for SnsReputationError {
             SnsReputationError::DataTypeMismatch => msg!("Error: Data type mismatch"),
             SnsReputationError::WrongOwner => msg!("Error: Wrong account owner"),
             SnsReputationError::Uninitialized => msg!("Error: Account is uninitialized"),
-            SnsReputationError::AlreadyVoted => msg!("Error: Already voted"),
         }
     }
 }

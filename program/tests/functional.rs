@@ -1,18 +1,14 @@
 use sns_reputation::{
     entrypoint::process_instruction,
-    error::SnsReputationError,
     instruction::vote,
     state::{reputation_score::ReputationScore, user_vote::UserVote, Tag},
 };
 use vote::Params;
 
 use {
-    solana_program::{instruction::InstructionError, pubkey::Pubkey},
-    solana_program_test::{processor, BanksClientError, ProgramTest},
-    solana_sdk::{
-        signer::Signer,
-        transaction::{Transaction, TransactionError},
-    },
+    solana_program::pubkey::Pubkey,
+    solana_program_test::{processor, ProgramTest},
+    solana_sdk::{signer::Signer, transaction::Transaction},
 };
 
 pub mod common;
@@ -104,6 +100,17 @@ async fn test_voting() {
         }
     );
 
+    // ============================================
+    // Now try to vote same value and check that user's vote will actually
+    // be cancelled and rent value will return back to payer
+
+    // Will be used below
+    let balance_after_vote = prg_test_ctx
+        .banks_client
+        .get_balance(payer_pubkey)
+        .await
+        .unwrap();
+
     let instruction = vote(
         vote::Accounts {
             system_program: &Pubkey::default(),
@@ -132,22 +139,52 @@ async fn test_voting() {
         recent_blockhash,
     );
 
-    let tx_result = prg_test_ctx
+    prg_test_ctx
         .banks_client
         .process_transaction(transaction)
-        .await;
+        .await
+        .unwrap();
 
-    if let Err(BanksClientError::TransactionError(TransactionError::InstructionError(
-        0,
-        InstructionError::Custom(n),
-    ))) = tx_result
-    {
-        assert_eq!(n, SnsReputationError::AlreadyVoted as u32)
-    } else {
-        panic!();
-    };
+    let reputation_account = prg_test_ctx
+        .banks_client
+        .get_account(reputation_state)
+        .await
+        .unwrap()
+        .unwrap();
 
-    // create new instruction
-    // create new tx
-    // store tx result
+    let parsed =
+        ReputationScore::from_buffer(&reputation_account.data, Tag::ReputationScore).unwrap();
+
+    assert_eq!(
+        parsed,
+        ReputationScore {
+            nonce: reputation_state_nonce,
+            upvote: 0,
+            downvote: 0
+        }
+    );
+
+    let user_vote_account = prg_test_ctx
+        .banks_client
+        .get_account(user_vote_key)
+        .await
+        .unwrap();
+
+    assert!(
+        user_vote_account.is_none(),
+        "❌ user_vote_account still exists!"
+    );
+
+    // Check that after undo balance was increased, so some rent is returned
+    // back to the user
+    let balance_after_undo_vote = prg_test_ctx
+        .banks_client
+        .get_balance(payer_pubkey)
+        .await
+        .unwrap();
+
+    assert!(
+        balance_after_undo_vote > balance_after_vote,
+        "❌ Rent was not returned to the user!"
+    );
 }

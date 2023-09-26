@@ -14,8 +14,6 @@ pub enum SnsReputationError {
     WrongOwner,
     #[error("Account is uninitialized")]
     Uninitialized,
-    #[error("Already voted")]
-    AlreadyVoted,
 }
 
 impl From<SnsReputationError> for ProgramError {
