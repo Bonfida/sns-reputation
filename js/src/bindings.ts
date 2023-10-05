@@ -1,5 +1,6 @@
-import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
+import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { voteInstruction } from './raw_instructions';
+import { VoteValue } from './state';
 
 /**
  * Mainnet program ID
@@ -19,7 +20,7 @@ interface VotingInstructionParams {
   userKey: PublicKey;
   userVotePdaAddress: PublicKey;
   reputationScorePdaAddress: PublicKey;
-  isUpvote: boolean;
+  voteValue: VoteValue;
 }
 /**
  * Creates voting instruction.
@@ -30,7 +31,7 @@ interface VotingInstructionParams {
  * @param params.userKey - The votee account.
  * @param params.userVotePdaAddress - PDA: previous voter's vote state.
  * @param params.reputationScorePdaAddress - PDA: votee reputation score.
- * @param params.isUpvote - New voter's vote (true for upvote, false for downvote).
+ * @param params.voteValue - New voter's vote (see VoteValue type).
  * @returns A promise that resolves when the vote is successfully cast.
  */
 export const buildVotingInstruction = ({
@@ -39,11 +40,11 @@ export const buildVotingInstruction = ({
   userKey,
   userVotePdaAddress,
   reputationScorePdaAddress,
-  isUpvote,
+  voteValue,
 }: VotingInstructionParams) => {
   return new voteInstruction({
     userKey: userKey.toBytes(),
-    isUpvote,
+    voteValue,
   }).getInstruction(
     programId,
     SystemProgram.programId,

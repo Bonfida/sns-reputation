@@ -1,10 +1,10 @@
-import { Connection, PublicKey } from "@solana/web3.js";
-import { SNS_REPUTATION_ID_DEVNET } from "./bindings";
-import { ReputationScoreState, UserVoteState } from './state';
+import { Connection, PublicKey } from '@solana/web3.js';
+import { SNS_REPUTATION_ID_DEVNET } from './bindings';
+import { ReputationScoreState, UserVoteState, VoteValue } from './state';
 
 export const getReputationScoreKey = (user: PublicKey) => {
   return ReputationScoreState.findKey(SNS_REPUTATION_ID_DEVNET, user);
-}
+};
 
 /**
  * Retrieve user reputation score, based on number of upvotes and downvotes.
@@ -15,7 +15,10 @@ export const getReputationScoreKey = (user: PublicKey) => {
  *
  * const score = getReputationScore(connection, votee.publicKey);
  */
-export const getReputationScore = async (connection: Connection, votee: PublicKey): Promise<number> => {
+export const getReputationScore = async (
+  connection: Connection,
+  votee: PublicKey,
+): Promise<number> => {
   const [key] = await getReputationScoreKey(votee);
 
   let upvote = 0;
@@ -28,16 +31,18 @@ export const getReputationScore = async (connection: Connection, votee: PublicKe
     downvote = result.downvote;
   } catch (err: any) {
     if (!(err instanceof Error)) {
-      throw err
+      throw err;
     }
   }
 
   return upvote - downvote;
 };
 
-export const getUserVoteAddress = (addresses: Parameters<typeof UserVoteState.findKey>[1]) => {
+export const getUserVoteAddress = (
+  addresses: Parameters<typeof UserVoteState.findKey>[1],
+) => {
   return UserVoteState.findKey(SNS_REPUTATION_ID_DEVNET, addresses);
-}
+};
 /**
  * Retrieve user vote.
  *
@@ -51,16 +56,16 @@ export const getUserVoteAddress = (addresses: Parameters<typeof UserVoteState.fi
 export const getUserVote = async (
   connection: Connection,
   users: Parameters<typeof getUserVoteAddress>[0],
-): Promise<boolean | null> => {
+): Promise<VoteValue | null> => {
   const [key] = await getUserVoteAddress(users);
 
   try {
     const result = await UserVoteState.retrieve(connection, key);
 
-    return Boolean(result.value);
+    return result.value;
   } catch (err) {
     if (!(err instanceof Error)) {
-      throw err
+      throw err;
     }
   }
 
@@ -83,27 +88,30 @@ export const getAllVotersForUser = async (
   try {
     const filters = [
       {
-        // tag + bool + votee pubkey + voter pubkey
+        // tag + voteValue + votee pubkey + voter pubkey
         dataSize: 8 + 1 + 32 + 32,
       },
       {
         memcmp: {
-          offset: 8 + 1, // tag + bool
+          offset: 8 + 1, // tag + voteValue
           bytes: votee.toBase58(),
         },
       },
     ];
 
-    const result = await connection.getProgramAccounts(SNS_REPUTATION_ID_DEVNET, {
-      filters,
-    });
+    const result = await connection.getProgramAccounts(
+      SNS_REPUTATION_ID_DEVNET,
+      {
+        filters,
+      },
+    );
 
-    return result.map(item => UserVoteState.deserialize(item.account.data));
+    return result.map((item) => UserVoteState.deserialize(item.account.data));
   } catch (err) {
     console.error(err);
     return [];
   }
-}
+};
 
 export const getAllVoteesForVoter = async (
   connection: Connection,
@@ -112,25 +120,28 @@ export const getAllVoteesForVoter = async (
   try {
     const filters = [
       {
-        // tag + bool + votee pubkey + voter pubkey
+        // tag + voteValue + votee pubkey + voter pubkey
         dataSize: 8 + 1 + 32 + 32,
       },
       {
         memcmp: {
-          // tag + bool + votee pubkey
+          // tag + voteValue + votee pubkey
           offset: 8 + 1 + 32,
           bytes: voter.toBase58(),
         },
       },
     ];
 
-    const result = await connection.getProgramAccounts(SNS_REPUTATION_ID_DEVNET, {
-      filters,
-    });
+    const result = await connection.getProgramAccounts(
+      SNS_REPUTATION_ID_DEVNET,
+      {
+        filters,
+      },
+    );
 
-    return result.map(item => UserVoteState.deserialize(item.account.data));
+    return result.map((item) => UserVoteState.deserialize(item.account.data));
   } catch (err) {
     console.error(err);
     return [];
   }
-}
+};

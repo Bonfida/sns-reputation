@@ -16,6 +16,7 @@ pub enum Tag {
 }
 
 #[derive(BorshSerialize, BorshDeserialize, BorshSize, PartialEq, Debug, Clone, Copy)]
+// Borsh only works with u8 in enums
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum VoteValue {

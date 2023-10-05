@@ -199,7 +199,18 @@
 <a name='L134'></a><a href='#L134'>134</a>
 <a name='L135'></a><a href='#L135'>135</a>
 <a name='L136'></a><a href='#L136'>136</a>
-<a name='L137'></a><a href='#L137'>137</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L137'></a><a href='#L137'>137</a>
+<a name='L138'></a><a href='#L138'>138</a>
+<a name='L139'></a><a href='#L139'>139</a>
+<a name='L140'></a><a href='#L140'>140</a>
+<a name='L141'></a><a href='#L141'>141</a>
+<a name='L142'></a><a href='#L142'>142</a>
+<a name='L143'></a><a href='#L143'>143</a>
+<a name='L144'></a><a href='#L144'>144</a>
+<a name='L145'></a><a href='#L145'>145</a>
+<a name='L146'></a><a href='#L146'>146</a>
+<a name='L147'></a><a href='#L147'>147</a>
+<a name='L148'></a><a href='#L148'>148</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -217,6 +228,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">6x</span>
@@ -237,6 +251,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -299,6 +315,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -326,6 +345,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -335,13 +357,13 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Connection, PublicKey } from "@solana/web3.js";
-import { SNS_REPUTATION_ID_DEVNET } from "./bindings";
-import { ReputationScoreState, UserVoteState } from './state';
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Connection, PublicKey } from '@solana/web3.js';
+import { SNS_REPUTATION_ID_DEVNET } from './bindings';
+import { ReputationScoreState, UserVoteState, VoteValue } from './state';
 &nbsp;
 export const getReputationScoreKey = (user: PublicKey) =&gt; {
   return ReputationScoreState.findKey(SNS_REPUTATION_ID_DEVNET, user);
-}
+};
 &nbsp;
 /**
  * Retrieve user reputation score, based on number of upvotes and downvotes.
@@ -352,7 +374,10 @@ export const getReputationScoreKey = (user: PublicKey) =&gt; {
  *
  * const score = getReputationScore(connection, votee.publicKey);
  */
-export const getReputationScore = async (connection: Connection, votee: PublicKey): Promise&lt;number&gt; =&gt; {
+export const getReputationScore = async (
+  connection: Connection,
+  votee: PublicKey,
+): Promise&lt;number&gt; =&gt; {
   const [key] = await getReputationScoreKey(votee);
 &nbsp;
   let upvote = 0;
@@ -365,16 +390,18 @@ export const getReputationScore = async (connection: Connection, votee: PublicKe
     downvote = result.downvote;
   } catch (err: any) {
     <span class="missing-if-branch" title="if path not taken" >I</span>if (!(err instanceof Error)) {
-<span class="cstat-no" title="statement not covered" >      throw err</span>
+<span class="cstat-no" title="statement not covered" >      throw err;</span>
     }
   }
 &nbsp;
   return upvote - downvote;
 };
 &nbsp;
-export const getUserVoteAddress = (addresses: Parameters&lt;typeof UserVoteState.findKey&gt;[1]) =&gt; {
+export const getUserVoteAddress = (
+  addresses: Parameters&lt;typeof UserVoteState.findKey&gt;[1],
+) =&gt; {
   return UserVoteState.findKey(SNS_REPUTATION_ID_DEVNET, addresses);
-}
+};
 /**
  * Retrieve user vote.
  *
@@ -388,16 +415,16 @@ export const getUserVoteAddress = (addresses: Parameters&lt;typeof UserVoteState
 export const getUserVote = async (
   connection: Connection,
   users: Parameters&lt;typeof getUserVoteAddress&gt;[0],
-): Promise&lt;boolean | null&gt; =&gt; {
+): Promise&lt;VoteValue | null&gt; =&gt; {
   const [key] = await getUserVoteAddress(users);
 &nbsp;
   try {
     const result = await UserVoteState.retrieve(connection, key);
 &nbsp;
-    return Boolean(result.value);
+    return result.value;
   } catch (err) {
 <span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (!(err instanceof Error)) {</span>
-<span class="cstat-no" title="statement not covered" >      throw err</span>
+<span class="cstat-no" title="statement not covered" >      throw err;</span>
     }
   }
 &nbsp;
@@ -420,27 +447,30 @@ export const getAllVotersForUser = async (
   try {
     const filters = [
       {
-        // tag + bool + votee pubkey + voter pubkey
+        // tag + voteValue + votee pubkey + voter pubkey
         dataSize: 8 + 1 + 32 + 32,
       },
       {
         memcmp: {
-          offset: 8 + 1, // tag + bool
+          offset: 8 + 1, // tag + voteValue
           bytes: votee.toBase58(),
         },
       },
     ];
 &nbsp;
-    const result = await connection.getProgramAccounts(SNS_REPUTATION_ID_DEVNET, {
-      filters,
-    });
+    const result = await connection.getProgramAccounts(
+      SNS_REPUTATION_ID_DEVNET,
+      {
+        filters,
+      },
+    );
 &nbsp;
-    return result.map(item =&gt; UserVoteState.deserialize(item.account.data));
+    return result.map((item) =&gt; UserVoteState.deserialize(item.account.data));
   } catch (err) {
 <span class="cstat-no" title="statement not covered" >    console.error(err);</span>
 <span class="cstat-no" title="statement not covered" >    return [];</span>
   }
-}
+};
 &nbsp;
 export const getAllVoteesForVoter = async (
   connection: Connection,
@@ -449,28 +479,31 @@ export const getAllVoteesForVoter = async (
   try {
     const filters = [
       {
-        // tag + bool + votee pubkey + voter pubkey
+        // tag + voteValue + votee pubkey + voter pubkey
         dataSize: 8 + 1 + 32 + 32,
       },
       {
         memcmp: {
-          // tag + bool + votee pubkey
+          // tag + voteValue + votee pubkey
           offset: 8 + 1 + 32,
           bytes: voter.toBase58(),
         },
       },
     ];
 &nbsp;
-    const result = await connection.getProgramAccounts(SNS_REPUTATION_ID_DEVNET, {
-      filters,
-    });
+    const result = await connection.getProgramAccounts(
+      SNS_REPUTATION_ID_DEVNET,
+      {
+        filters,
+      },
+    );
 &nbsp;
-    return result.map(item =&gt; UserVoteState.deserialize(item.account.data));
+    return result.map((item) =&gt; UserVoteState.deserialize(item.account.data));
   } catch (err) {
 <span class="cstat-no" title="statement not covered" >    console.error(err);</span>
 <span class="cstat-no" title="statement not covered" >    return [];</span>
   }
-}
+};
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -478,7 +511,7 @@ export const getAllVoteesForVoter = async (
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2023-09-26T15:11:51.706Z
+                at 2023-10-05T14:57:20.927Z
             </div>
         <script src="../prettify.js"></script>
         <script>

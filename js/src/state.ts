@@ -48,16 +48,21 @@ export class ReputationScoreState {
   }
 }
 
+export enum VoteValue {
+  NoVote = 0,
+  Downvote = 1,
+  Upvote = 2,
+}
 export interface UserVote {
   tag: Tag;
-  value: boolean;
+  value: VoteValue;
   votee: PublicKey;
   voter: PublicKey;
 }
 
 export class UserVoteState implements UserVote {
   tag: Tag;
-  value: boolean;
+  value: VoteValue;
   votee: PublicKey;
   voter: PublicKey;
 
@@ -72,7 +77,7 @@ export class UserVoteState implements UserVote {
 
   constructor(obj: {
     tag: Tag;
-    value: boolean;
+    value: VoteValue;
     votee: Uint8Array;
     voter: Uint8Array;
   }) {

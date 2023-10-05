@@ -13,6 +13,7 @@ import {
   getAllVotersForUser,
   getAllVoteesForVoter,
 } from '../src/secondary_bindings';
+import { VoteValue } from '../src/state';
 
 let connection: Connection;
 
@@ -27,11 +28,11 @@ jest.setTimeout(1_500_000);
 
 const makeVote = async ({
   voter = undefined,
-  vote = true,
+  vote,
   votee,
 }: {
   voter?: Keypair;
-  vote?: boolean;
+  vote: VoteValue;
   votee: Keypair;
 }) => {
   if (!voter) {
@@ -51,13 +52,14 @@ const makeVote = async ({
     voter: voter.publicKey,
   });
 
+  console.log('vote', vote);
   const ix = buildVotingInstruction({
     programId: SNS_REPUTATION_ID_DEVNET,
     voter: voter.publicKey,
     userKey: votee.publicKey,
     userVotePdaAddress: userVoteAddress,
     reputationScorePdaAddress: reputationScoreAddress,
-    isUpvote: vote,
+    voteValue: vote,
   });
 
   await signAndSendTransactionInstructions(connection, [voter], voter, [ix]);
@@ -89,23 +91,26 @@ test('Check voting flow', async () => {
   expect(await checkScore(voteeA)).toEqual(0);
 
   // Make upvote
-  const { voter } = await makeVote({ votee: voteeA, vote: true });
+  const { voter } = await makeVote({ votee: voteeA, vote: VoteValue.Upvote });
   expect(await checkScore(voteeA)).toEqual(1);
 
   // Downvote with the same user
-  await makeVote({ votee: voteeA, vote: false, voter });
+  await makeVote({ votee: voteeA, vote: VoteValue.Downvote, voter });
   // Now score should be -1, because same user changed his vote
   expect(await checkScore(voteeA)).toEqual(-1);
 
   // Make new downvote by NEW user
-  const { voter: anotherVoter } = await makeVote({ votee: voteeA, vote: false });
+  const { voter: anotherVoter } = await makeVote({
+    votee: voteeA,
+    vote: VoteValue.Downvote,
+  });
   // Now score should be -2, because two users downvoted
   expect(await checkScore(voteeA)).toEqual(-2);
 
   const voteeB = Keypair.generate();
 
   // Check that same voter can vote over another votee
-  await makeVote({ votee: voteeB, vote: false, voter });
+  await makeVote({ votee: voteeB, vote: VoteValue.Downvote, voter });
   expect(await checkScore(voteeB)).toEqual(-1);
 
   const voterVote = await getUserVote(connection, {
@@ -113,8 +118,7 @@ test('Check voting flow', async () => {
     voter: voter.publicKey,
   });
 
-  // voter's latest vote is -1, means "false"
-  expect(voterVote).toEqual(false);
+  expect(voterVote).toEqual(VoteValue.Downvote);
 
   const votersList = await getAllVotersForUser(connection, voteeA.publicKey);
 
@@ -138,8 +142,8 @@ test('Check voting flow', async () => {
     ]).toContain(item.votee.toBase58());
   });
 
-  // Test that making same vote will basically undo previous vote
-  await makeVote({ votee: voteeB, vote: false, voter });
+  // Test undo voting
+  await makeVote({ votee: voteeB, vote: VoteValue.NoVote, voter });
   // Now score should be 0, because same user undo his vote
   expect(await checkScore(voteeB)).toEqual(0);
 
@@ -147,8 +151,6 @@ test('Check voting flow', async () => {
   voteesList = await getAllVoteesForVoter(connection, voter.publicKey);
   expect(voteesList.length).toBe(1);
   voteesList.forEach((item) => {
-    expect([
-      voteeB.publicKey.toBase58(),
-    ]).not.toContain(item.votee.toBase58());
+    expect([voteeB.publicKey.toBase58()]).not.toContain(item.votee.toBase58());
   });
 });
