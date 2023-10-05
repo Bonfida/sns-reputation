@@ -52,7 +52,6 @@ const makeVote = async ({
     voter: voter.publicKey,
   });
 
-  console.log('vote', vote);
   const ix = buildVotingInstruction({
     programId: SNS_REPUTATION_ID_DEVNET,
     voter: voter.publicKey,
