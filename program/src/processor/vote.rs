@@ -5,7 +5,8 @@
 
 use solana_program::{program::invoke_signed, rent::Rent, sysvar::Sysvar};
 
-use crate::state::{reputation_score::ReputationScore, user_vote::UserVote, Tag};
+use crate::error::SnsReputationError;
+use crate::state::{reputation_score::ReputationScore, user_vote::UserVote, Tag, VoteValue};
 
 use {
     bonfida_utils::{
@@ -22,12 +23,12 @@ use {
     },
 };
 
-#[derive(BorshDeserialize, BorshSerialize, BorshSize)]
+#[derive(BorshDeserialize, BorshSerialize, BorshSize, Debug)]
 pub struct Params {
     /// votee account pubkey
     pub user_key: Pubkey,
-    /// voter's vote, up (true) or down (false)
-    pub is_upvote: bool,
+    /// voter's vote
+    pub vote_value: VoteValue,
 }
 
 #[derive(InstructionsAccount)]
@@ -121,6 +122,13 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
         // If UserVote PDA is empty, means we're dealing with the initial user's vote
         // Create UserVote PDA and update initial ReputationScore value
 
+        // Throw an error if user's initial vote is VoteValue::NoVote, because this
+        // value is used to "undo" user's vote and get his rent back, so it makes
+        // no sense to process this value for the initial vote
+        if params.vote_value == VoteValue::NoVote {
+            return Err(SnsReputationError::NoVoteExists.into());
+        }
+
         let space = UserVote::default().borsh_len() + std::mem::size_of::<Tag>();
         let rent = Rent::get()?;
         let lamports = rent.minimum_balance(space);
@@ -148,14 +156,14 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
         )?;
 
         let vote = UserVote {
-            value: params.is_upvote,
+            value: params.vote_value,
             votee: params.user_key,
             voter: *accounts.voter.key,
         };
 
-        if params.is_upvote {
+        if params.vote_value == VoteValue::Upvote {
             reputation_score.upvote += 1
-        } else {
+        } else if params.vote_value == VoteValue::Downvote {
             reputation_score.downvote += 1
         }
 
@@ -169,14 +177,20 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
             Tag::UserVote,
         )?;
 
-        if vote.value == params.is_upvote {
+        // Return an error if user voted with the same value
+        if vote.value == params.vote_value {
+            return Err(SnsReputationError::AlreadyVoted.into());
+        }
+
+        // If user voted with VoteValue::NoVote, it means that user wants to undo his previous vote
+        if params.vote_value == VoteValue::NoVote {
             let lamports = **accounts.user_vote_state_account.lamports.borrow_mut();
             **accounts.user_vote_state_account.lamports.borrow_mut() = 0;
             **accounts.voter.lamports.borrow_mut() += lamports;
 
-            if params.is_upvote {
+            if vote.value == VoteValue::Upvote {
                 reputation_score.upvote -= 1;
-            } else {
+            } else if vote.value == VoteValue::Downvote {
                 reputation_score.downvote -= 1;
             }
 
@@ -187,12 +201,13 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
             return Ok(());
         }
 
-        vote.value = params.is_upvote;
+        vote.value = params.vote_value;
+
         // The user has changed his vote
-        if params.is_upvote {
+        if params.vote_value == VoteValue::Upvote {
             reputation_score.upvote += 1;
             reputation_score.downvote -= 1;
-        } else {
+        } else if params.vote_value == VoteValue::Downvote {
             reputation_score.downvote += 1;
             reputation_score.upvote -= 1;
         }

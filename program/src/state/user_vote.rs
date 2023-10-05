@@ -4,14 +4,14 @@ use solana_program::{program_error::ProgramError, pubkey::Pubkey};
 
 use crate::error::SnsReputationError;
 
-use super::Tag;
+use super::{Tag, VoteValue};
 
 #[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, BorshSize, Default)]
 #[allow(missing_docs)]
 #[repr(C)]
 pub struct UserVote {
     /// User's vote over votee
-    pub value: bool,
+    pub value: VoteValue,
     /// Votee address, stored as metadata
     pub votee: Pubkey,
     /// Voter address, stored as metadata

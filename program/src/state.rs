@@ -1,9 +1,6 @@
-use crate::error::SnsReputationError;
-
 use {
     bonfida_utils::BorshSize,
     borsh::{BorshDeserialize, BorshSerialize},
-    solana_program::{account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey},
 };
 
 pub mod reputation_score;
@@ -16,4 +13,19 @@ pub enum Tag {
     Uninitialized,
     ReputationScore,
     UserVote,
+}
+
+#[derive(BorshSerialize, BorshDeserialize, BorshSize, PartialEq, Debug, Clone, Copy)]
+#[repr(u8)]
+#[allow(missing_docs)]
+pub enum VoteValue {
+    NoVote,
+    Downvote,
+    Upvote,
+}
+
+impl Default for VoteValue {
+    fn default() -> Self {
+        VoteValue::NoVote
+    }
 }
