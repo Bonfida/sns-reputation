@@ -18,6 +18,10 @@ pub enum SnsReputationError {
     AlreadyVoted,
     #[error("No vote exists")]
     NoVoteExists,
+    #[error("A valid stake account is necessary to be allowed to vote")]
+    MissingStakeAccount,
+    #[error("A valid stake account is necessary to be allowed to vote")]
+    InvalidStakeAccount,
 }
 
 impl From<SnsReputationError> for ProgramError {

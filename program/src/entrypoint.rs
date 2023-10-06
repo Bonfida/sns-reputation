@@ -42,6 +42,12 @@ impl PrintProgramError for SnsReputationError {
             SnsReputationError::Uninitialized => msg!("Error: Account is uninitialized"),
             SnsReputationError::AlreadyVoted => msg!("Error: Already voted"),
             SnsReputationError::NoVoteExists => msg!("Error: No vote exists"),
+            SnsReputationError::MissingStakeAccount => {
+                msg!("Error: A valid stake account is necessary to be allowed to vote")
+            }
+            SnsReputationError::InvalidStakeAccount => {
+                msg!("Error: A valid stake account is necessary to be allowed to vote")
+            }
         }
     }
 }

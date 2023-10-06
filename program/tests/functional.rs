@@ -37,6 +37,7 @@ async fn process_vote(
             voter: &payer,
             reputation_state_account: &reputation_state_account,
             user_vote_state_account: &user_vote_state_account,
+            voter_stake_account: None,
         },
         Params {
             user_key: votee,

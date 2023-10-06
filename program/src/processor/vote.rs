@@ -3,6 +3,9 @@
 //! 1. Reputation score PDA - accumulates all voters' votes over the votee account.
 //! 2. User vote PDA – stores voter's vote.
 
+use bonfida_utils::checks::check_account_owner;
+use solana_program::msg;
+use solana_program::stake::state::StakeState;
 use solana_program::{program::invoke_signed, rent::Rent, sysvar::Sysvar};
 
 use crate::error::SnsReputationError;
@@ -46,12 +49,15 @@ pub struct Accounts<'a, T> {
     /// PDA that stores voter's vote, that is derived from votee and vote's keys
     #[cons(writable)]
     pub user_vote_state_account: &'a T,
+
+    /// Stake account associated with the voter
+    pub voter_stake_account: Option<&'a T>,
 }
 
 impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
     pub fn parse(
         accounts: &'a [AccountInfo<'b>],
-        program_id: &Pubkey,
+        _program_id: &Pubkey,
     ) -> Result<Self, ProgramError> {
         let accounts_iter = &mut accounts.iter();
         let accounts = Accounts {
@@ -59,6 +65,7 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
             voter: next_account_info(accounts_iter)?,
             reputation_state_account: next_account_info(accounts_iter)?,
             user_vote_state_account: next_account_info(accounts_iter)?,
+            voter_stake_account: next_account_info(accounts_iter).ok(),
         };
 
         // Check keys
@@ -78,6 +85,37 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
         ReputationScore::find_key(program_id, &params.user_key);
 
     check_account_key(accounts.reputation_state_account, &reputation_score_key)?;
+
+    // Check that voter is authorized to vote
+    #[cfg(not(feature = "devnet"))]
+    if params.vote_value != VoteValue::NoVote {
+        let voter_stake_account = accounts
+            .voter_stake_account
+            .ok_or(SnsReputationError::MissingStakeAccount)?;
+        check_account_owner(voter_stake_account, &solana_program::stake::program::ID)?;
+        let parsed_stake = solana_program::stake::state::StakeState::deserialize(
+            &mut (&voter_stake_account.data.borrow() as &[u8]),
+        )?;
+        if let StakeState::Stake(meta, stake) = parsed_stake {
+            if &meta.authorized.staker != accounts.voter.key {
+                msg!("The staking account should be owned by the voter");
+                return Err(SnsReputationError::InvalidStakeAccount.into());
+            }
+            let clock = solana_program::sysvar::clock::Clock::get()?;
+            if clock
+                .epoch
+                .checked_sub(stake.delegation.activation_epoch)
+                .unwrap_or_default()
+                < 2
+            // At least three days lockup
+            {
+                msg!("Funds have not been staked for long enough.");
+                return Err(SnsReputationError::InvalidStakeAccount.into());
+            }
+        } else {
+            return Err(SnsReputationError::InvalidStakeAccount.into());
+        }
+    }
 
     let mut reputation_score = if accounts.reputation_state_account.data_is_empty() {
         let space = ReputationScore::default().borsh_len() + std::mem::size_of::<Tag>();
