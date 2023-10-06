@@ -17,13 +17,13 @@ pub enum Tag {
 
 #[derive(BorshSerialize, BorshDeserialize, BorshSize, PartialEq, Debug, Clone, Copy, Default)]
 // Borsh only works with u8 in enums
-#[repr(u8)]
+#[repr(i64)]
 #[allow(missing_docs)]
 pub enum VoteValue {
     #[default]
-    NoVote,
-    Downvote,
-    Upvote,
+    NoVote = 0,
+    Downvote = -1,
+    Upvote = 1,
 }
 
 #[cfg(test)]

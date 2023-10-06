@@ -1,6 +1,7 @@
-import { Connection, PublicKey } from '@solana/web3.js';
+import { Connection, PublicKey, StakeProgram } from '@solana/web3.js';
 import { SNS_REPUTATION_ID_DEVNET } from './bindings';
 import { ReputationScoreState, UserVoteState, VoteValue } from './state';
+import base58 from 'bs58';
 
 export const getReputationScoreKey = (user: PublicKey) => {
   return ReputationScoreState.findKey(SNS_REPUTATION_ID_DEVNET, user);
@@ -145,3 +146,15 @@ export const getAllVoteesForVoter = async (
     return [];
   }
 };
+
+export const getStakeAccountForVoter = async (connection: Connection, voter: PublicKey): Promise<PublicKey | undefined> => {
+  let expected_tag_filter = {
+    offset: 0, bytes: base58.encode([2, 0, 0, 0])
+  };
+  let expected_stake_owner_filter = {
+    offset: 12, bytes: voter.toBase58()
+  }
+  let candidates = await connection.getProgramAccounts(StakeProgram.programId, { filters: [{ memcmp: expected_tag_filter }, { memcmp: expected_stake_owner_filter }] });
+  candidates.filter((k, a) { });
+  return undefined;
+}
