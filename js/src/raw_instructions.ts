@@ -35,6 +35,7 @@ export class voteInstruction {
     voter: PublicKey,
     reputationStateAccount: PublicKey,
     userVoteStateAccount: PublicKey,
+    voterStakeAccount?: PublicKey,
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
@@ -58,6 +59,13 @@ export class voteInstruction {
       isSigner: false,
       isWritable: true,
     });
+    if (!!voterStakeAccount) {
+      keys.push({
+        pubkey: voterStakeAccount,
+        isSigner: false,
+        isWritable: false
+      });
+    }
     return new TransactionInstruction({
       keys,
       programId,
