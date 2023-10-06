@@ -138,7 +138,7 @@ async fn test_voting() {
     assert_eq!(
         parsed_user_vote,
         UserVote {
-            value: VoteValue::Upvote,
+            value: VoteValue::Upvote as i64,
             voter: payer_pubkey,
             votee,
         }
@@ -206,7 +206,7 @@ async fn test_voting() {
     assert_eq!(
         parsed_user_vote,
         UserVote {
-            value: opposite_vote,
+            value: opposite_vote as i64,
             voter: payer_pubkey,
             votee
         },

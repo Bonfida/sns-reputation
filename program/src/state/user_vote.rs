@@ -11,7 +11,7 @@ use super::{Tag, VoteValue};
 #[repr(C)]
 pub struct UserVote {
     /// User's vote over votee
-    pub value: VoteValue,
+    pub value: i64,
     /// Votee address, stored as metadata
     pub votee: Pubkey,
     /// Voter address, stored as metadata

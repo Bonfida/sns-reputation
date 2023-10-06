@@ -88,7 +88,7 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
 
     // Check that voter is authorized to vote
     #[cfg(not(feature = "devnet"))]
-    if params.vote_value != VoteValue::NoVote {
+    let vote_weight = if params.vote_value != VoteValue::NoVote {
         let voter_stake_account = accounts
             .voter_stake_account
             .ok_or(SnsReputationError::MissingStakeAccount)?;
@@ -112,10 +112,15 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
                 msg!("Funds have not been staked for long enough.");
                 return Err(SnsReputationError::InvalidStakeAccount.into());
             }
+            stake.delegation.stake as i64
         } else {
             return Err(SnsReputationError::InvalidStakeAccount.into());
         }
-    }
+    } else {
+        0
+    };
+    #[cfg(feature = "devnet")]
+    let vote_weight = 1;
 
     let mut reputation_score = if accounts.reputation_state_account.data_is_empty() {
         let space = ReputationScore::default().borsh_len() + std::mem::size_of::<Tag>();
@@ -156,12 +161,14 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
 
     check_account_key(accounts.user_vote_state_account, &user_vote_key)?;
 
+    let new_vote_value = (params.vote_value as i64).checked_mul(vote_weight).unwrap();
+
     let user_vote = if accounts.user_vote_state_account.data_is_empty() {
         // If UserVote PDA is empty, means we're dealing with the initial user's vote
         // Create UserVote PDA and update initial ReputationScore value
 
         // Throw an error if user's initial vote is VoteValue::NoVote, because this
-        // value is used to "undo" user's vote and get his rent back, so it makes
+        // value is used to "undo" user's vote and get their rent back, so it makes
         // no sense to process this value for the initial vote
         if params.vote_value == VoteValue::NoVote {
             return Err(SnsReputationError::NoVoteExists.into());
@@ -194,15 +201,21 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
         )?;
 
         let vote = UserVote {
-            value: params.vote_value,
+            value: new_vote_value,
             votee: params.user_key,
             voter: *accounts.voter.key,
         };
 
         if params.vote_value == VoteValue::Upvote {
-            reputation_score.upvote += 1
+            reputation_score.upvote = reputation_score
+                .upvote
+                .checked_add(new_vote_value.unsigned_abs())
+                .unwrap();
         } else if params.vote_value == VoteValue::Downvote {
-            reputation_score.downvote += 1
+            reputation_score.downvote = reputation_score
+                .downvote
+                .checked_add(new_vote_value.unsigned_abs())
+                .unwrap();
         }
 
         vote
@@ -216,20 +229,26 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
         )?;
 
         // Return an error if user voted with the same value
-        if vote.value == params.vote_value {
+        if (vote.value.signum()) == ((params.vote_value as i64).signum()) {
             return Err(SnsReputationError::AlreadyVoted.into());
         }
 
-        // If user voted with VoteValue::NoVote, it means that user wants to undo his previous vote
+        // If user voted with VoteValue::NoVote, it means that the user wants to undo their previous vote
         if params.vote_value == VoteValue::NoVote {
             let lamports = **accounts.user_vote_state_account.lamports.borrow_mut();
             **accounts.user_vote_state_account.lamports.borrow_mut() = 0;
             **accounts.voter.lamports.borrow_mut() += lamports;
 
-            if vote.value == VoteValue::Upvote {
-                reputation_score.upvote -= 1;
-            } else if vote.value == VoteValue::Downvote {
-                reputation_score.downvote -= 1;
+            if vote.value.signum() == (VoteValue::Upvote as i64).signum() {
+                reputation_score.upvote = reputation_score
+                    .upvote
+                    .checked_sub(vote.value.unsigned_abs())
+                    .unwrap();
+            } else if vote.value.signum() == (VoteValue::Downvote as i64).signum() {
+                reputation_score.downvote = reputation_score
+                    .downvote
+                    .checked_sub(vote.value.unsigned_abs())
+                    .unwrap();
             }
 
             reputation_score
@@ -239,16 +258,32 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
             return Ok(());
         }
 
-        vote.value = params.vote_value;
-
-        // The user has changed his vote
-        if params.vote_value == VoteValue::Upvote {
-            reputation_score.upvote += 1;
-            reputation_score.downvote -= 1;
-        } else if params.vote_value == VoteValue::Downvote {
-            reputation_score.downvote += 1;
-            reputation_score.upvote -= 1;
+        // The user has changed their vote
+        match params.vote_value {
+            VoteValue::Upvote => {
+                reputation_score.upvote = reputation_score
+                    .upvote
+                    .checked_add(new_vote_value.unsigned_abs())
+                    .unwrap();
+                reputation_score.downvote = reputation_score
+                    .downvote
+                    .checked_sub(vote.value.unsigned_abs())
+                    .unwrap();
+            }
+            VoteValue::Downvote => {
+                reputation_score.downvote = reputation_score
+                    .downvote
+                    .checked_add(new_vote_value.unsigned_abs())
+                    .unwrap();
+                reputation_score.upvote = reputation_score
+                    .upvote
+                    .checked_sub(vote.value.unsigned_abs())
+                    .unwrap();
+            }
+            _ => {}
         }
+
+        vote.value = new_vote_value;
 
         vote
     };
