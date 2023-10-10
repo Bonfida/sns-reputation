@@ -65,7 +65,7 @@ export const getUserVote = async (
   connection: Connection,
   users: Parameters<typeof getUserVoteAddress>[0],
   programId = SNS_REPUTATION_ID
-): Promise<VoteValue | null> => {
+): Promise<bigint | null> => {
   const [key] = await getUserVoteAddress(users, programId);
 
   try {

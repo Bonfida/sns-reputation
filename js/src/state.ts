@@ -56,33 +56,33 @@ export enum VoteValue {
 }
 export interface UserVote {
   tag: Tag;
-  value: VoteValue;
+  value: bigint;
   votee: PublicKey;
   voter: PublicKey;
 }
 
 export class UserVoteState implements UserVote {
   tag: Tag;
-  value: VoteValue;
+  value: bigint;
   votee: PublicKey;
   voter: PublicKey;
 
   static schema = {
     struct: {
       tag: "u64",
-      value: "u8",
+      value: "i64",
       votee: { array: { type: "u8", len: 32 } },
       voter: { array: { type: "u8", len: 32 } },
     },
   };
 
   constructor(obj: {
-    tag: Tag;
-    value: VoteValue;
+    tag: bigint;
+    value: bigint;
     votee: Uint8Array;
     voter: Uint8Array;
   }) {
-    this.tag = obj.tag;
+    this.tag = Number(obj.tag) as Tag;
     this.value = obj.value;
     this.votee = new PublicKey(obj.votee);
     this.voter = new PublicKey(obj.voter);
