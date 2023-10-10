@@ -170,7 +170,7 @@ export const getBestStakeAccountForVoter = async (
     (a) => a.stake_info.activation_epoch <= max_activation_epoch
   );
   result = result.sort((a, b) => {
-    return a.stake_info.stake - b.stake_info.stake;
+    return b.stake_info.stake - a.stake_info.stake;
   });
 
   return result.map((a) => a.account.pubkey);

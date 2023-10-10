@@ -34,3 +34,26 @@ test("test stake account retrieval", async () => {
   expect(stake).toBe(LAMPORTS_PER_SOL * 0.1);
   expect(activation_epoch).toBe(513);
 });
+
+test("test stake account retrieval 2", async () => {
+  let accounts = await getBestStakeAccountForVoter(
+    connection,
+    new PublicKey("3wNDQQDU4VhieyaNBndGhz8seePjHL5hWPKq2sZ6mq19"),
+    1000
+  );
+  expect(accounts?.length).toBeGreaterThan(0);
+  if (!accounts) {
+    return;
+  }
+  console.log(accounts.length);
+  console.log(accounts[0].toBase58());
+  let account = await connection.getAccountInfo(accounts[0]);
+  expect(account).toBeDefined();
+  if (!account) {
+    return;
+  }
+  let { stake, activation_epoch } = await parseStakeAndEpoch(account.data);
+  console.log(stake);
+  expect(stake).toBe(LAMPORTS_PER_SOL * 0.1);
+  expect(activation_epoch).toBe(513);
+});
