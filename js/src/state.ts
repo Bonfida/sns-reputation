@@ -1,5 +1,6 @@
-import { deserialize, Schema } from 'borsh';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { deserialize } from "borsh";
+import { Connection, PublicKey } from "@solana/web3.js";
+import { Buffer } from "buffer";
 
 export enum Tag {
   Uninitialized = 0,
@@ -14,7 +15,7 @@ export class ReputationScoreState {
   downvote: number;
 
   static schema = {
-    struct: { tag: 'u64', nonce: 'u8', upvote: 'u64', downvote: 'u64' },
+    struct: { tag: "u64", nonce: "u8", upvote: "u64", downvote: "u64" },
   };
 
   constructor(obj: {
@@ -36,14 +37,14 @@ export class ReputationScoreState {
   static async retrieve(connection: Connection, key: PublicKey) {
     const accountInfo = await connection.getAccountInfo(key);
     if (!accountInfo || !accountInfo.data) {
-      throw new Error('State account not found');
+      throw new Error("State account not found");
     }
     return this.deserialize(accountInfo.data);
   }
   static async findKey(programId: PublicKey, userAddress: PublicKey) {
     return await PublicKey.findProgramAddress(
       [userAddress.toBytes()],
-      programId,
+      programId
     );
   }
 }
@@ -68,10 +69,10 @@ export class UserVoteState implements UserVote {
 
   static schema = {
     struct: {
-      tag: 'u64',
-      value: 'u8',
-      votee: { array: { type: 'u8', len: 32 } },
-      voter: { array: { type: 'u8', len: 32 } },
+      tag: "u64",
+      value: "u8",
+      votee: { array: { type: "u8", len: 32 } },
+      voter: { array: { type: "u8", len: 32 } },
     },
   };
 
@@ -94,17 +95,17 @@ export class UserVoteState implements UserVote {
   static async retrieve(connection: Connection, key: PublicKey) {
     const accountInfo = await connection.getAccountInfo(key);
     if (!accountInfo || !accountInfo.data) {
-      throw new Error('State account not found');
+      throw new Error("State account not found");
     }
     return this.deserialize(accountInfo.data);
   }
   static async findKey(
     programId: PublicKey,
-    { votee, voter }: { votee: PublicKey; voter: PublicKey },
+    { votee, voter }: { votee: PublicKey; voter: PublicKey }
   ) {
-    return await PublicKey.findProgramAddress(
+    return PublicKey.findProgramAddress(
       [votee.toBytes(), voter.toBytes()],
-      programId,
+      programId
     );
   }
 }

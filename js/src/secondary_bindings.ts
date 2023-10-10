@@ -1,11 +1,15 @@
-import { Connection, PublicKey, StakeProgram } from '@solana/web3.js';
-import { SNS_REPUTATION_ID_DEVNET } from './bindings';
-import { ReputationScoreState, UserVoteState, VoteValue } from './state';
-import base58 from 'bs58';
-import BN from 'bn.js';
+import { Connection, PublicKey, StakeProgram } from "@solana/web3.js";
+import { SNS_REPUTATION_ID } from "./bindings";
+import { ReputationScoreState, UserVoteState, VoteValue } from "./state";
+import base58 from "bs58";
+import BN from "bn.js";
+import { Buffer } from "buffer";
 
-export const getReputationScoreKey = (user: PublicKey) => {
-  return ReputationScoreState.findKey(SNS_REPUTATION_ID_DEVNET, user);
+export const getReputationScoreKey = (
+  user: PublicKey,
+  programId = SNS_REPUTATION_ID
+) => {
+  return ReputationScoreState.findKey(programId, user);
 };
 
 /**
@@ -20,8 +24,9 @@ export const getReputationScoreKey = (user: PublicKey) => {
 export const getReputationScore = async (
   connection: Connection,
   votee: PublicKey,
+  programId = SNS_REPUTATION_ID
 ): Promise<number> => {
-  const [key] = await getReputationScoreKey(votee);
+  const [key] = await getReputationScoreKey(votee, programId);
 
   let upvote = 0;
   let downvote = 0;
@@ -42,8 +47,9 @@ export const getReputationScore = async (
 
 export const getUserVoteAddress = (
   addresses: Parameters<typeof UserVoteState.findKey>[1],
+  programId = SNS_REPUTATION_ID
 ) => {
-  return UserVoteState.findKey(SNS_REPUTATION_ID_DEVNET, addresses);
+  return UserVoteState.findKey(programId, addresses);
 };
 /**
  * Retrieve user vote.
@@ -58,8 +64,9 @@ export const getUserVoteAddress = (
 export const getUserVote = async (
   connection: Connection,
   users: Parameters<typeof getUserVoteAddress>[0],
+  programId = SNS_REPUTATION_ID
 ): Promise<VoteValue | null> => {
-  const [key] = await getUserVoteAddress(users);
+  const [key] = await getUserVoteAddress(users, programId);
 
   try {
     const result = await UserVoteState.retrieve(connection, key);
@@ -86,6 +93,7 @@ export const getUserVote = async (
 export const getAllVotersForUser = async (
   connection: Connection,
   votee: PublicKey,
+  programId = SNS_REPUTATION_ID
 ): Promise<UserVoteState[]> => {
   try {
     const filters = [
@@ -101,12 +109,9 @@ export const getAllVotersForUser = async (
       },
     ];
 
-    const result = await connection.getProgramAccounts(
-      SNS_REPUTATION_ID_DEVNET,
-      {
-        filters,
-      },
-    );
+    const result = await connection.getProgramAccounts(programId, {
+      filters,
+    });
 
     return result.map((item) => UserVoteState.deserialize(item.account.data));
   } catch (err) {
@@ -118,6 +123,7 @@ export const getAllVotersForUser = async (
 export const getAllVoteesForVoter = async (
   connection: Connection,
   voter: PublicKey,
+  programId = SNS_REPUTATION_ID
 ): Promise<UserVoteState[]> => {
   try {
     const filters = [
@@ -134,12 +140,9 @@ export const getAllVoteesForVoter = async (
       },
     ];
 
-    const result = await connection.getProgramAccounts(
-      SNS_REPUTATION_ID_DEVNET,
-      {
-        filters,
-      },
-    );
+    const result = await connection.getProgramAccounts(programId, {
+      filters,
+    });
 
     return result.map((item) => UserVoteState.deserialize(item.account.data));
   } catch (err) {
@@ -148,30 +151,52 @@ export const getAllVoteesForVoter = async (
   }
 };
 
-export const getBestStakeAccountForVoter = async (connection: Connection, voter: PublicKey, max_activation_epoch: number): Promise<PublicKey[] | undefined> => {
+export const getBestStakeAccountForVoter = async (
+  connection: Connection,
+  voter: PublicKey,
+  max_activation_epoch: number
+): Promise<PublicKey[] | undefined> => {
   let expected_tag_filter = {
-    offset: 0, bytes: base58.encode([2, 0, 0, 0])
+    offset: 0,
+    bytes: base58.encode([2, 0, 0, 0]),
   };
   let expected_stake_owner_filter = {
-    offset: 12, bytes: voter.toBase58()
-  }
-  let candidates = await connection.getProgramAccounts(StakeProgram.programId, { filters: [{ memcmp: expected_tag_filter }, { memcmp: expected_stake_owner_filter }] });
+    offset: 12,
+    bytes: voter.toBase58(),
+  };
+  let candidates = await connection.getProgramAccounts(StakeProgram.programId, {
+    filters: [
+      { memcmp: expected_tag_filter },
+      { memcmp: expected_stake_owner_filter },
+    ],
+  });
   let result = candidates.map((a) => {
     let stake_info = parseStakeAndEpoch(a.account.data);
-    return { account: a, stake_info }
+    return { account: a, stake_info };
   });
-  result = result.filter((a) => a.stake_info.activation_epoch <= max_activation_epoch);
-  result = result.sort((a, b) => { return a.stake_info.stake - b.stake_info.stake; });
+  result = result.filter(
+    (a) => a.stake_info.activation_epoch <= max_activation_epoch
+  );
+  result = result.sort((a, b) => {
+    return a.stake_info.stake - b.stake_info.stake;
+  });
 
   return result.map((a) => a.account.pubkey);
-}
+};
 
 export const parseStakeAndEpoch = (data: Buffer) => {
   let stake_index = 12 + 32 + 32 + 8 + 8 + 32 + 32;
   // stake_index = 4 + 8 + 32 + 32 + 8 + 8 + 32 + 32;
   let epoch_index = stake_index + 8;
-  let activation_epoch = new BN(data.slice(epoch_index, epoch_index + 8), undefined, 'le').toNumber();
-  let stake = new BN(data.slice(stake_index, stake_index + 8), undefined, 'le').toNumber();
+  let activation_epoch = new BN(
+    data.slice(epoch_index, epoch_index + 8),
+    undefined,
+    "le"
+  ).toNumber();
+  let stake = new BN(
+    data.slice(stake_index, stake_index + 8),
+    undefined,
+    "le"
+  ).toNumber();
   return { stake, activation_epoch };
-
-}
+};

@@ -1,6 +1,6 @@
 {
   "name": "@bonfida/sns-reputation",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "license": "MIT",
   "repository": {
     "type": "git"
@@ -8,13 +8,25 @@
   "publishConfig": {
     "access": "public"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "test": "jest --detectOpenHandles --coverage --forceExit",
     "dev": "tsc && node dist/test.js",
     "prebuild": "rm -rf dist",
-    "build": "tsc",
+    "build": "rm -rf dist && rollup -c",
     "prepublish": "rm -rf dist && tsc",
     "lint": "yarn pretty && eslint .",
     "lint:fix": "yarn pretty:fix && eslint . --fix",
@@ -23,6 +35,12 @@
     "doc": "yarn typedoc src/index.ts"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.5",
+    "@rollup/plugin-json": "^6.0.1",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-replace": "^5.0.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^11.1.5",
     "@tsconfig/recommended": "^1.0.1",
     "@types/bs58": "^4.0.1",
     "@types/jest": "^27.0.3",
@@ -34,6 +52,7 @@
     "jest": "^27.3.1",
     "nodemon": "^2.0.7",
     "prettier": "^2.2.1",
+    "rollup": "^4.0.2",
     "save-dev": "0.0.1-security",
     "tmp": "^0.2.1",
     "ts-jest": "^27.0.7",
@@ -47,6 +66,7 @@
     "@solana/web3.js": "1.30.2",
     "bn.js": "^5.2.0",
     "borsh": "^1.0.0",
-    "bs58": "4.0.1"
+    "bs58": "4.0.1",
+    "buffer": "^6.0.3"
   }
 }

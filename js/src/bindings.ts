@@ -1,17 +1,19 @@
-import { PublicKey, SystemProgram } from '@solana/web3.js';
-import { voteInstruction } from './raw_instructions';
-import { VoteValue } from './state';
+import { PublicKey, SystemProgram } from "@solana/web3.js";
+import { voteInstruction } from "./raw_instructions";
+import { VoteValue } from "./state";
 
 /**
  * Mainnet program ID
  */
-// export const SNS_REPUTATION_ID = new PublicKey(""); //TODO:
+export const SNS_REPUTATION_ID = new PublicKey(
+  "4X9mF1yUx2ez6ifYCmr2aYJnX5DkKAxbu5QD93s7gooG"
+);
 
 /**
  * Devnet program ID (might not have the latest version deployed!)
  */
 export const SNS_REPUTATION_ID_DEVNET = new PublicKey(
-  'HVFVK2UComnzuLfDbPukyt86LGi51iLQUL3aGBEVqLni',
+  "HVFVK2UComnzuLfDbPukyt86LGi51iLQUL3aGBEVqLni"
 );
 
 interface VotingInstructionParams {

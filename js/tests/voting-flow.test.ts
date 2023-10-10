@@ -1,10 +1,10 @@
-import { beforeAll, expect, jest, test } from '@jest/globals';
-import { Connection, Keypair, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { signAndSendTransactionInstructions, sleep } from './utils';
+import { beforeAll, expect, jest, test } from "@jest/globals";
+import { Connection, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { signAndSendTransactionInstructions, sleep } from "./utils";
 import {
   buildVotingInstruction,
   SNS_REPUTATION_ID_DEVNET,
-} from '../src/bindings';
+} from "../src/bindings";
 import {
   getReputationScore,
   getUserVoteAddress,
@@ -12,15 +12,15 @@ import {
   getUserVote,
   getAllVotersForUser,
   getAllVoteesForVoter,
-} from '../src/secondary_bindings';
-import { VoteValue } from '../src/state';
+} from "../src/secondary_bindings";
+import { VoteValue } from "../src/state";
 
 let connection: Connection;
 
 beforeAll(async () => {
   connection = new Connection(
-    'https://explorer-api.devnet.solana.com/ ',
-    'confirmed',
+    "https://explorer-api.devnet.solana.com/ ",
+    "confirmed"
   );
 });
 
@@ -41,16 +41,22 @@ const makeVote = async ({
     // Airdrop some SOL
     const tx = await connection.requestAirdrop(
       voter.publicKey,
-      LAMPORTS_PER_SOL,
+      LAMPORTS_PER_SOL
     );
-    await connection.confirmTransaction(tx, 'confirmed');
+    await connection.confirmTransaction(tx, "confirmed");
   }
 
-  const [reputationScoreAddress] = await getReputationScoreKey(votee.publicKey);
-  const [userVoteAddress] = await getUserVoteAddress({
-    votee: votee.publicKey,
-    voter: voter.publicKey,
-  });
+  const [reputationScoreAddress] = await getReputationScoreKey(
+    votee.publicKey,
+    SNS_REPUTATION_ID_DEVNET
+  );
+  const [userVoteAddress] = await getUserVoteAddress(
+    {
+      votee: votee.publicKey,
+      voter: voter.publicKey,
+    },
+    SNS_REPUTATION_ID_DEVNET
+  );
 
   const ix = buildVotingInstruction({
     programId: SNS_REPUTATION_ID_DEVNET,
@@ -66,7 +72,8 @@ const makeVote = async ({
   return { voter };
 };
 
-const checkScore = (votee) => getReputationScore(connection, votee.publicKey);
+const checkScore = (votee) =>
+  getReputationScore(connection, votee.publicKey, SNS_REPUTATION_ID_DEVNET);
 
 /**
  * Test scenario
@@ -83,7 +90,7 @@ const checkScore = (votee) => getReputationScore(connection, votee.publicKey);
  * 9. Check that after "undo" operation voter is not associated with voteeB anympre
  */
 
-test('Check voting flow', async () => {
+test("Check voting flow", async () => {
   const voteeA = Keypair.generate();
 
   // Initial score should be 0
@@ -112,14 +119,22 @@ test('Check voting flow', async () => {
   await makeVote({ votee: voteeB, vote: VoteValue.Downvote, voter });
   expect(await checkScore(voteeB)).toEqual(-1);
 
-  const voterVote = await getUserVote(connection, {
-    votee: voteeA.publicKey,
-    voter: voter.publicKey,
-  });
+  const voterVote = await getUserVote(
+    connection,
+    {
+      votee: voteeA.publicKey,
+      voter: voter.publicKey,
+    },
+    SNS_REPUTATION_ID_DEVNET
+  );
 
   expect(voterVote).toEqual(VoteValue.Downvote);
 
-  const votersList = await getAllVotersForUser(connection, voteeA.publicKey);
+  const votersList = await getAllVotersForUser(
+    connection,
+    voteeA.publicKey,
+    SNS_REPUTATION_ID_DEVNET
+  );
 
   expect(votersList.length).toBe(2);
   // We're doing forEach because Solana might return the list in incorrect order
@@ -131,7 +146,11 @@ test('Check voting flow', async () => {
     ]).toContain(item.voter.toBase58());
   });
 
-  let voteesList = await getAllVoteesForVoter(connection, voter.publicKey);
+  let voteesList = await getAllVoteesForVoter(
+    connection,
+    voter.publicKey,
+    SNS_REPUTATION_ID_DEVNET
+  );
 
   expect(voteesList.length).toBe(2);
   voteesList.forEach((item) => {
@@ -147,7 +166,11 @@ test('Check voting flow', async () => {
   expect(await checkScore(voteeB)).toEqual(0);
 
   // Check that now "voter" is not associated with "voteeB"
-  voteesList = await getAllVoteesForVoter(connection, voter.publicKey);
+  voteesList = await getAllVoteesForVoter(
+    connection,
+    voter.publicKey,
+    SNS_REPUTATION_ID_DEVNET
+  );
   expect(voteesList.length).toBe(1);
   voteesList.forEach((item) => {
     expect([voteeB.publicKey.toBase58()]).not.toContain(item.votee.toBase58());
