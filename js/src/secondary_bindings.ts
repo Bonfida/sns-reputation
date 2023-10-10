@@ -98,12 +98,8 @@ export const getAllVotersForUser = async (
   try {
     const filters = [
       {
-        // tag + voteValue + votee pubkey + voter pubkey
-        dataSize: 8 + 1 + 32 + 32,
-      },
-      {
         memcmp: {
-          offset: 8 + 1, // tag + voteValue
+          offset: 8 + 8, // tag + voteValue
           bytes: votee.toBase58(),
         },
       },
@@ -128,13 +124,9 @@ export const getAllVoteesForVoter = async (
   try {
     const filters = [
       {
-        // tag + voteValue + votee pubkey + voter pubkey
-        dataSize: 8 + 1 + 32 + 32,
-      },
-      {
         memcmp: {
           // tag + voteValue + votee pubkey
-          offset: 8 + 1 + 32,
+          offset: 8 + 8 + 32,
           bytes: voter.toBase58(),
         },
       },
