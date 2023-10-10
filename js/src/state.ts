@@ -11,8 +11,8 @@ export enum Tag {
 export class ReputationScoreState {
   tag: Tag;
   nonce: number;
-  upvote: number;
-  downvote: number;
+  upvote: bigint;
+  downvote: bigint;
 
   static schema = {
     struct: { tag: "u64", nonce: "u8", upvote: "u64", downvote: "u64" },
@@ -26,8 +26,8 @@ export class ReputationScoreState {
   }) {
     this.tag = obj.tag;
     this.nonce = obj.nonce;
-    this.upvote = Number(obj.upvote);
-    this.downvote = Number(obj.downvote);
+    this.upvote = obj.upvote;
+    this.downvote = obj.downvote;
   }
 
   static deserialize(data: Buffer): ReputationScoreState {

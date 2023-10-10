@@ -25,11 +25,11 @@ export const getReputationScore = async (
   connection: Connection,
   votee: PublicKey,
   programId = SNS_REPUTATION_ID
-): Promise<number> => {
+): Promise<bigint> => {
   const [key] = await getReputationScoreKey(votee, programId);
 
-  let upvote = 0;
-  let downvote = 0;
+  let upvote = BigInt(0);
+  let downvote = BigInt(0);
 
   try {
     const result = await ReputationScoreState.retrieve(connection, key);
