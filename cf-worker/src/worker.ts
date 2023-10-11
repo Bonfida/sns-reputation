@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z, ZodError } from 'zod';
 import { TTL, generateMessage, getCurrentTime, pubkey, verifyMessage } from './utils';
-import { Connection } from '@solana/web3.js';
+import { Connection, PublicKey } from '@solana/web3.js';
 
 type Bindings = {
 	DB: D1Database;
@@ -68,7 +68,7 @@ app.post('/report-tx', async (c) => {
 
 		const isUserInvolved = !!transaction?.transaction.message.staticAccountKeys.some((e) => e.toBase58() === userKey);
 
-		const existing = await c.env.DB.prepare('SELECT COUNT(*) as total FROM report WHERE tx_sig = ?1 AND reported_by = ?2')
+		const existing = await c.env.DB.prepare('SELECT COUNT(*) as total FROM report_tx WHERE tx_sig = ?1 AND reported_by = ?2')
 			.bind(tx, userKey)
 			.first('total');
 
@@ -78,8 +78,8 @@ app.post('/report-tx', async (c) => {
 
 		const stmt = c.env.DB.prepare(
 			`INSERT INTO 
-			report (tx_sig, slot, slot_time, successful, reported_time, reported_by, reporter_involved)
-		VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
+			 report_tx (tx_sig, slot, slot_time, successful, reported_time, reported_by, reporter_involved)
+			 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
 		).bind(
 			tx,
 			transaction?.slot,
@@ -89,6 +89,56 @@ app.post('/report-tx', async (c) => {
 			userKey,
 			Number(isUserInvolved)
 		);
+		await stmt.run();
+
+		return c.json('Success');
+	} catch (err) {
+		console.log(err);
+		if (err instanceof ZodError) {
+			return c.json('Bad request', 400);
+		}
+		return c.json('Error', 500);
+	}
+});
+
+const ReportKeyRquest = z.object({
+	key: pubkey,
+	msgSig: z.string(),
+	userKey: pubkey,
+});
+
+app.post('/report-key', async (c) => {
+	try {
+		const json = await c.req.json();
+		const { key, msgSig, userKey } = ReportKeyRquest.parse(json);
+		const msg = await c.env.NONCE_KV.get(userKey);
+
+		if (!msg) {
+			return c.json('Nonce not found', 400);
+		}
+
+		const validSig = verifyMessage(msg, msgSig, userKey);
+		if (!validSig) {
+			return c.json('Invalid signature', 400);
+		}
+
+		const connection = new Connection(c.env.RPC_URL);
+
+		const info = await connection.getAccountInfo(new PublicKey(key));
+
+		const existing = await c.env.DB.prepare('SELECT COUNT(*) as total FROM report_key WHERE key = ?1 AND reported_by = ?2')
+			.bind(key, userKey)
+			.first('total');
+
+		if (Number(existing) !== 0) {
+			return c.json('Already reported', 400);
+		}
+
+		const stmt = c.env.DB.prepare(
+			`INSERT INTO 
+			report_key (key, owner, executable, reported_time, reported_by)
+			 VALUES (?1, ?2, ?3, ?4, ?5)`
+		).bind(key, info?.owner.toBase58(), info?.executable, getCurrentTime(), userKey);
 		await stmt.run();
 
 		return c.json('Success');
