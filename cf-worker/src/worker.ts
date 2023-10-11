@@ -67,6 +67,10 @@ app.post('/report-tx', async (c) => {
 
 		const transaction = await connection.getTransaction(tx, { maxSupportedTransactionVersion: 1, commitment: 'confirmed' });
 
+		if (transaction === null) {
+			return c.json('Transaction not found', 400);
+		}
+
 		const isUserInvolved = !!transaction?.transaction.message.staticAccountKeys.some((e) => e.toBase58() === userKey);
 
 		const existing = await c.env.DB.prepare('SELECT COUNT(*) as total FROM report_tx WHERE tx_sig = ?1 AND reported_by = ?2')
