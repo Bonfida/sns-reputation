@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { z, ZodError } from 'zod';
 import { TTL, generateMessage, getCurrentTime, pubkey, verifyMessage } from './utils';
 import { Connection, PublicKey } from '@solana/web3.js';
+import { cors } from 'hono/cors';
+import { secureHeaders } from 'hono/secure-headers';
 
 type Bindings = {
 	DB: D1Database;
@@ -12,6 +14,9 @@ type Bindings = {
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
+
+app.use('*', cors());
+app.use('*', secureHeaders());
 
 const NonceRequest = z.object({
 	userKey: pubkey,
