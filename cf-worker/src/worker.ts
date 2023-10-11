@@ -138,7 +138,7 @@ app.post('/report-key', async (c) => {
 			`INSERT INTO 
 			report_key (key, owner, executable, reported_time, reported_by)
 			 VALUES (?1, ?2, ?3, ?4, ?5)`
-		).bind(key, info?.owner.toBase58(), info?.executable, getCurrentTime(), userKey);
+		).bind(key, info?.owner.toBase58(), Number(info?.executable), getCurrentTime(), userKey);
 		await stmt.run();
 
 		return c.json('Success');
