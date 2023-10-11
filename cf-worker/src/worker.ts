@@ -61,6 +61,7 @@ app.post('/report-tx', async (c) => {
 		if (!validSig) {
 			return c.json('Invalid signature', 400);
 		}
+		await c.env.NONCE_KV.delete(userKey);
 
 		const connection = new Connection(c.env.RPC_URL);
 
@@ -121,6 +122,7 @@ app.post('/report-key', async (c) => {
 		if (!validSig) {
 			return c.json('Invalid signature', 400);
 		}
+		await c.env.NONCE_KV.delete(userKey);
 
 		const connection = new Connection(c.env.RPC_URL);
 
