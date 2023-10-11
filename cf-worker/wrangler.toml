@@ -1,0 +1,17 @@
+name = "autumn-bird-0087"
+main = "src/worker.ts"
+compatibility_date = "2023-10-11"
+node_compat = true
+
+
+kv_namespaces = [
+    { binding = "NONCE_KV", id = "f8860299f871452994d72897c20f2420", preview_id = "0b1a938e3d2c4814a8b5513bc0dd3431" }
+]
+
+d1_databases = [
+     { binding = "DB", database_name = "sns_reputation", database_id = "4176eb5e-a424-4ca5-9247-a462fe93c6d6" }
+]
+
+[vars]
+# The necessary secrets are:
+# - RPC_URL
