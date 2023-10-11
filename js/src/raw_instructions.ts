@@ -1,8 +1,7 @@
 // This file is auto-generated. DO NOT EDIT
 import BN from "bn.js";
-import { serialize } from "borsh";
+import { Schema, serialize } from "borsh";
 import { PublicKey, TransactionInstruction } from "@solana/web3.js";
-import { Buffer } from "buffer";
 
 export interface AccountKey {
   pubkey: PublicKey;
@@ -13,7 +12,6 @@ export class voteInstruction {
   tag: number;
   userKey: Uint8Array;
   voteValue: number;
-
   static schema = {
     struct: {
       tag: "u8",
@@ -21,8 +19,10 @@ export class voteInstruction {
       voteValue: "u8",
     },
   };
-
-  constructor(obj: { userKey: Uint8Array; voteValue: number }) {
+  constructor(obj: {
+    userKey: Uint8Array;
+    voteValue: number;
+  }) {
     this.tag = 0;
     this.userKey = obj.userKey;
     this.voteValue = obj.voteValue;
@@ -36,7 +36,7 @@ export class voteInstruction {
     voter: PublicKey,
     reputationStateAccount: PublicKey,
     userVoteStateAccount: PublicKey,
-    voterStakeAccount?: PublicKey
+    voterStakeAccounts: PublicKey[],
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
@@ -60,9 +60,9 @@ export class voteInstruction {
       isSigner: false,
       isWritable: true,
     });
-    if (!!voterStakeAccount) {
+    for (let k of voterStakeAccounts) {
       keys.push({
-        pubkey: voterStakeAccount,
+        pubkey: k,
         isSigner: false,
         isWritable: false,
       });

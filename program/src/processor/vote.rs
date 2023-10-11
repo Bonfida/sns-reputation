@@ -51,7 +51,7 @@ pub struct Accounts<'a, T> {
     pub user_vote_state_account: &'a T,
 
     /// Stake account associated with the voter
-    pub voter_stake_account: Option<&'a T>,
+    pub voter_stake_accounts: &'a [T],
 }
 
 impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
@@ -65,7 +65,7 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
             voter: next_account_info(accounts_iter)?,
             reputation_state_account: next_account_info(accounts_iter)?,
             user_vote_state_account: next_account_info(accounts_iter)?,
-            voter_stake_account: next_account_info(accounts_iter).ok(),
+            voter_stake_accounts: accounts_iter.as_slice(),
         };
 
         // Check keys
@@ -89,33 +89,37 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
     // Check that voter is authorized to vote
     #[cfg(not(feature = "devnet"))]
     let vote_weight = if params.vote_value != VoteValue::NoVote {
-        let voter_stake_account = accounts
-            .voter_stake_account
-            .ok_or(SnsReputationError::MissingStakeAccount)?;
-        check_account_owner(voter_stake_account, &solana_program::stake::program::ID)?;
-        let parsed_stake = solana_program::stake::state::StakeState::deserialize(
-            &mut (&voter_stake_account.data.borrow() as &[u8]),
-        )?;
-        if let StakeState::Stake(meta, stake) = parsed_stake {
-            if &meta.authorized.staker != accounts.voter.key {
-                msg!("The staking account should be owned by the voter");
-                return Err(SnsReputationError::InvalidStakeAccount.into());
-            }
-            let clock = solana_program::sysvar::clock::Clock::get()?;
-            if clock
-                .epoch
-                .checked_sub(stake.delegation.activation_epoch)
-                .unwrap_or_default()
-                < 2
-            // At least three days lockup
-            {
-                msg!("Funds have not been staked for long enough.");
-                return Err(SnsReputationError::InvalidStakeAccount.into());
-            }
-            stake.delegation.stake as i64
-        } else {
-            return Err(SnsReputationError::InvalidStakeAccount.into());
+        if accounts.voter_stake_accounts.is_empty() {
+            return Err(SnsReputationError::MissingStakeAccount.into());
         }
+        let mut total_stake = 0;
+        for voter_stake_account in accounts.voter_stake_accounts.iter() {
+            check_account_owner(voter_stake_account, &solana_program::stake::program::ID)?;
+            let parsed_stake = solana_program::stake::state::StakeState::deserialize(
+                &mut (&voter_stake_account.data.borrow() as &[u8]),
+            )?;
+            total_stake += if let StakeState::Stake(meta, stake) = parsed_stake {
+                if &meta.authorized.staker != accounts.voter.key {
+                    msg!("The staking account should be owned by the voter");
+                    return Err(SnsReputationError::InvalidStakeAccount.into());
+                }
+                let clock = solana_program::sysvar::clock::Clock::get()?;
+                if clock
+                    .epoch
+                    .checked_sub(stake.delegation.activation_epoch)
+                    .unwrap_or_default()
+                    < 2
+                // At least three days lockup
+                {
+                    msg!("Funds have not been staked for long enough.");
+                    return Err(SnsReputationError::InvalidStakeAccount.into());
+                }
+                stake.delegation.stake as i64
+            } else {
+                return Err(SnsReputationError::InvalidStakeAccount.into());
+            }
+        }
+        total_stake
     } else {
         0
     };

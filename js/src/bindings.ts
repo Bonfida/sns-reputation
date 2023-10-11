@@ -23,7 +23,7 @@ interface VotingInstructionParams {
   userVotePdaAddress: PublicKey;
   reputationScorePdaAddress: PublicKey;
   voteValue: VoteValue;
-  voterStakeAddress?: PublicKey;
+  voterStakeAddresses: PublicKey[];
 }
 /**
  * Creates voting instruction.
@@ -43,7 +43,7 @@ export const buildVotingInstruction = ({
   userKey,
   userVotePdaAddress,
   reputationScorePdaAddress,
-  voterStakeAddress,
+  voterStakeAddresses,
   voteValue,
 }: VotingInstructionParams) => {
   return new voteInstruction({
@@ -55,6 +55,6 @@ export const buildVotingInstruction = ({
     voter,
     reputationScorePdaAddress,
     userVotePdaAddress,
-    voterStakeAddress
+    voterStakeAddresses
   );
 };
