@@ -49,12 +49,13 @@ const ReportTxRquest = z.object({
 	tx: z.string(),
 	msgSig: z.string(),
 	userKey: pubkey,
+	comment: z.optional(z.string()),
 });
 
 app.post('/report-tx', async (c) => {
 	try {
 		const json = await c.req.json();
-		const { tx, msgSig, userKey } = ReportTxRquest.parse(json);
+		const { tx, msgSig, userKey, comment } = ReportTxRquest.parse(json);
 
 		const msg = await c.env.NONCE_KV.get(userKey);
 
@@ -88,8 +89,8 @@ app.post('/report-tx', async (c) => {
 
 		const stmt = c.env.DB.prepare(
 			`INSERT INTO 
-			 report_tx (tx_sig, slot, slot_time, successful, reported_time, reported_by, reporter_involved)
-			 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
+			 report_tx (tx_sig, slot, slot_time, successful, reported_time, reported_by, reporter_involved, comment)
+			 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`
 		).bind(
 			tx,
 			transaction?.slot,
@@ -97,7 +98,8 @@ app.post('/report-tx', async (c) => {
 			Number(transaction?.meta?.err === null),
 			getCurrentTime(),
 			userKey,
-			Number(isUserInvolved)
+			Number(isUserInvolved),
+			comment || ''
 		);
 		await stmt.run();
 
@@ -115,12 +117,13 @@ const ReportKeyRquest = z.object({
 	key: pubkey,
 	msgSig: z.string(),
 	userKey: pubkey,
+	comment: z.optional(z.string()),
 });
 
 app.post('/report-key', async (c) => {
 	try {
 		const json = await c.req.json();
-		const { key, msgSig, userKey } = ReportKeyRquest.parse(json);
+		const { key, msgSig, userKey, comment } = ReportKeyRquest.parse(json);
 		const msg = await c.env.NONCE_KV.get(userKey);
 
 		if (!msg) {
@@ -147,9 +150,9 @@ app.post('/report-key', async (c) => {
 
 		const stmt = c.env.DB.prepare(
 			`INSERT INTO 
-			report_key (key, owner, executable, reported_time, reported_by)
-			 VALUES (?1, ?2, ?3, ?4, ?5)`
-		).bind(key, info?.owner.toBase58(), Number(info?.executable), getCurrentTime(), userKey);
+			report_key (key, owner, executable, reported_time, reported_by, comment)
+			 VALUES (?1, ?2, ?3, ?4, ?5, ?6)`
+		).bind(key, info?.owner.toBase58(), Number(info?.executable), getCurrentTime(), userKey, comment || '');
 		await stmt.run();
 
 		return c.json('Success');
