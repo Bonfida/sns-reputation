@@ -165,4 +165,15 @@ app.post('/report-key', async (c) => {
 	}
 });
 
+app.get('/stats', async (c) => {
+	try {
+		const totalKeys = await c.env.DB.prepare('SELECT COUNT(*) as total FROM report_key').first('total');
+		const totalTxs = await c.env.DB.prepare('SELECT COUNT(*) as total FROM report_tx').first('total');
+		return c.json({ totalKeys, totalTxs });
+	} catch (err) {
+		console.log(err);
+		return c.json('Error', 500);
+	}
+});
+
 export default app;
