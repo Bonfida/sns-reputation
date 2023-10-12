@@ -48,6 +48,9 @@ impl PrintProgramError for SnsReputationError {
             SnsReputationError::InvalidStakeAccount => {
                 msg!("Error: A valid stake account is necessary to be allowed to vote")
             }
+            SnsReputationError::CannotVoteForYourself => {
+                msg!("Error: You cannot vote for yourself")
+            }
         }
     }
 }

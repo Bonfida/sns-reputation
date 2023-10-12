@@ -22,6 +22,8 @@ pub enum SnsReputationError {
     MissingStakeAccount,
     #[error("A valid stake account is necessary to be allowed to vote")]
     InvalidStakeAccount,
+    #[error("You cannot vote for yourself")]
+    CannotVoteForYourself,
 }
 
 impl From<SnsReputationError> for ProgramError {

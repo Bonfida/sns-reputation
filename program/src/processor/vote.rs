@@ -86,6 +86,10 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], params: Params) ->
 
     check_account_key(accounts.reputation_state_account, &reputation_score_key)?;
 
+    if *accounts.voter.key == params.user_key {
+        return Err(SnsReputationError::CannotVoteForYourself.into());
+    }
+
     // Check that voter is authorized to vote
     #[cfg(not(feature = "devnet"))]
     let vote_weight = if params.vote_value != VoteValue::NoVote {
