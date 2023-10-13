@@ -45,6 +45,12 @@ To report a suspicious wallet or transaction, follow these steps:
 5. Provide any additional details in the 'Comments' section.
 6. Click 'Submit' to send your report. Our Cloudflare worker will gather and process your report.
 
+
+
+https://github.com/Bonfida/sns-reputation/assets/47689875/c88730dc-607b-4d79-89f5-453d6067ad8f
+
+
+
 <h3 align="center">Vote on users</h3>
 
 To vote on users based on their behavior, follow these steps:
@@ -55,5 +61,11 @@ To vote on users based on their behavior, follow these steps:
 4. To vote, click on the 'Upvote' or 'Downvote' button next to the user's name.
 5. Your vote will be weighted by how much Solana you stake. If you don't stake, you cannot vote.
 6. The smart contract will handle your vote.
+
+
+
+https://github.com/Bonfida/sns-reputation/assets/47689875/3d236540-f781-4fb6-884f-d6f4549b2936
+
+
 
 Remember, the aim of voting is to create an on-chain reputation and see which users are more trustworthy than others. It's purely community driven and there is no moderation.
