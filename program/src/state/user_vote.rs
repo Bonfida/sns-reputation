@@ -4,7 +4,7 @@ use solana_program::{program_error::ProgramError, pubkey::Pubkey};
 
 use crate::error::SnsReputationError;
 
-use super::{Tag, VoteValue};
+use super::Tag;
 
 #[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, BorshSize, Default)]
 #[allow(missing_docs)]
