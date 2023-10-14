@@ -20,8 +20,6 @@ SNS Reputation is a two-faceted initiative: Community-driven score and Algorithm
 
 The community-driven score allows users to upvote/downvote other users based on their behaviour. This score can be used to create on-chain reputation and see which users are more trustworthy than others. There is no moderation and it's purely community driven. The vote of each user is weighted by how much Solana they stake. If users don't stake they cannot vote.
 
-The smart contract that handles the voting mechanism is written in TypeScript and deployed on the Solana blockchain. The contract's main function, vote, is used to cast a vote.
-
 The smart contract is currently deployed on mainnet at `4X9mF1yUx2ez6ifYCmr2aYJnX5DkKAxbu5QD93s7gooG`.
 
 Smart contract bindings are availble in Javascript and Python.
