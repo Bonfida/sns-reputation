@@ -1,8 +1,7 @@
 import { Connection, PublicKey, StakeProgram } from "@solana/web3.js";
 import { SNS_REPUTATION_ID } from "./bindings";
-import { ReputationScoreState, UserVoteState, VoteValue } from "./state";
+import { ReputationScoreState, UserVoteState } from "./state";
 import base58 from "bs58";
-import BN from "bn.js";
 import { Buffer } from "buffer";
 
 export const getReputationScoreKey = (
@@ -177,18 +176,13 @@ export const getBestStakeAccountForVoter = async (
 };
 
 export const parseStakeAndEpoch = (data: Buffer) => {
-  let stake_index = 12 + 32 + 32 + 8 + 8 + 32 + 32;
-  // stake_index = 4 + 8 + 32 + 32 + 8 + 8 + 32 + 32;
-  let epoch_index = stake_index + 8;
-  let activation_epoch = new BN(
-    data.slice(epoch_index, epoch_index + 8),
-    undefined,
-    "le"
-  ).toNumber();
-  let stake = new BN(
-    data.slice(stake_index, stake_index + 8),
-    undefined,
-    "le"
-  ).toNumber();
+  const stake_index = 12 + 32 + 32 + 8 + 8 + 32 + 32;
+  const epoch_index = stake_index + 8;
+  const activation_epoch = Number(
+    data.slice(epoch_index, epoch_index + 8).readBigUInt64BE()
+  );
+  const stake = Number(
+    data.slice(stake_index, stake_index + 8).readBigUInt64BE()
+  );
   return { stake, activation_epoch };
 };

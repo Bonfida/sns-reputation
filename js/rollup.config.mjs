@@ -15,6 +15,7 @@ export default {
     },
     { file: "dist/index.cjs", format: "cjs", sourcemap: true },
   ],
+  external: ["@solana/web3.js"],
   plugins: [
     replace({
       preventAssignment: true,
@@ -30,4 +31,8 @@ export default {
     json(),
     terser(),
   ],
+  onwarn: function (warning, handler) {
+    if (warning.code === "THIS_IS_UNDEFINED") return;
+    handler(warning);
+  },
 };
